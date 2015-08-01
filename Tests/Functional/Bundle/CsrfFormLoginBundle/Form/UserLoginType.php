@@ -27,7 +27,7 @@ use Symfony\Component\Security\Core\Security;
  * @author Henrik Bjornskov <henrik@bjrnskov.dk>
  * @author Jeremy Mikola <jmikola@gmail.com>
  */
-class UserLoginFormType extends AbstractType
+class UserLoginType extends AbstractType
 {
     private $requestStack;
 
@@ -42,9 +42,9 @@ class UserLoginFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder
-            ->add('username', 'text')
-            ->add('password', 'password')
-            ->add('_target_path', 'hidden')
+            ->add('username', 'Symfony\Component\Form\Extension\Core\Type\TextType')
+            ->add('password', 'Symfony\Component\Form\Extension\Core\Type\PasswordType')
+            ->add('_target_path', 'Symfony\Component\Form\Extension\Core\Type\HiddenType')
         ;
 
         $request = $this->requestStack->getCurrentRequest();
@@ -83,13 +83,5 @@ class UserLoginFormType extends AbstractType
         $resolver->setDefaults(array(
             'intention' => 'authenticate',
         ));
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getName()
-    {
-        return 'user_login';
     }
 }
