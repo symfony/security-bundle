@@ -116,4 +116,24 @@ class MainConfigurationTest extends TestCase
 
         $this->assertEquals('app.henk_checker', $processedConfig['firewalls']['stub']['user_checker']);
     }
+
+    public function testMultipleIps()
+    {
+        $config = array(
+            'access_control' => array(
+                array(
+                    'path' => '^/internal',
+                    'role' => 'IS_AUTHENTICATED_ANONYMOUSLY',
+                    'ips' => '127.0.0.1, ::1'
+                ),
+            ),
+        );
+        $config = array_merge(static::$minimalConfig, $config);
+
+        $processor = new Processor();
+        $configuration = new MainConfiguration(array(), array());
+        $processedConfig = $processor->processConfiguration($configuration, array($config));
+
+        $this->assertEquals(['127.0.0.1', '::1'],$processedConfig['access_control'][0]['ips']);
+    }
 }
