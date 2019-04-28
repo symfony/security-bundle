@@ -43,7 +43,10 @@ class RememberMeFactory implements SecurityFactoryInterface
         ;
 
         // remember me services
-        if (isset($config['token_provider'])) {
+        if (isset($config['custom_service'])) {
+            $templateId = $config['custom_service'];
+            $rememberMeServicesId = $templateId.'.'.$id;
+        } elseif (isset($config['token_provider'])) {
             $templateId = 'security.authentication.rememberme.services.persistent';
             $rememberMeServicesId = $templateId.'.'.$id;
         } else {
@@ -130,6 +133,7 @@ class RememberMeFactory implements SecurityFactoryInterface
 
         $builder
             ->scalarNode('secret')->isRequired()->cannotBeEmpty()->end()
+            ->scalarNode('custom_service')->end()
             ->scalarNode('token_provider')->end()
             ->arrayNode('user_providers')
                 ->beforeNormalization()
