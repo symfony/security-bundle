@@ -42,7 +42,7 @@ class RegisterCsrfFeaturesPass implements CompilerPassInterface
         }
 
         $container->register('security.listener.csrf_protection', CsrfProtectionListener::class)
-            ->addArgument(new Reference('security.csrf.token_storage'))
+            ->addArgument(new Reference('security.csrf.token_manager'))
             ->addTag('kernel.event_subscriber')
             ->setPublic(false);
     }
