@@ -1,8 +1,8 @@
 imports:
-    - { resource: legacy_encoders.yml }
+    - { resource: container1.yml }
 
 security:
-    encoders:
+    password_hashers:
         JMS\FooBundle\Entity\User7:
             algorithm: argon2i
             memory_cost: 256
