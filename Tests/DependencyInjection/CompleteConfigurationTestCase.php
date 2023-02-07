@@ -34,7 +34,7 @@ use Symfony\Component\Security\Http\Authentication\AuthenticatorManager;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\CsrfTokenBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\RememberMeBadge;
 
-abstract class CompleteConfigurationTest extends TestCase
+abstract class CompleteConfigurationTestCase extends TestCase
 {
     abstract protected function getLoader(ContainerBuilder $container);
 
