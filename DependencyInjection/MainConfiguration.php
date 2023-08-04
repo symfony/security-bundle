@@ -57,8 +57,8 @@ class MainConfiguration implements ConfigurationInterface
         $rootNode
             ->docUrl('https://symfony.com/doc/{version:major}.{version:minor}/reference/configuration/security.html', 'symfony/security-bundle')
             ->beforeNormalization()
-                ->always()
-                ->then(function ($v) {
+                ->ifArray()
+                ->then(static function ($v) {
                     if (isset($v['hide_user_not_found']) && isset($v['expose_security_errors'])) {
                         throw new InvalidConfigurationException('You cannot use both "hide_user_not_found" and "expose_security_errors" at the same time.');
                     }
@@ -80,7 +80,7 @@ class MainConfiguration implements ConfigurationInterface
                     ->setDeprecated('symfony/security-bundle', '7.3', 'The "%node%" option is deprecated and will be removed in 8.0. Use the "expose_security_errors" option instead.')
                 ->end()
                 ->enumNode('expose_security_errors')
-                    ->beforeNormalization()->ifString()->then(fn ($v) => ExposeSecurityLevel::tryFrom($v))->end()
+                    ->beforeNormalization()->ifString()->then(static fn ($v) => ExposeSecurityLevel::tryFrom($v))->end()
                     ->values(ExposeSecurityLevel::cases())
                     ->defaultValue(ExposeSecurityLevel::None)
                 ->end()
@@ -129,11 +129,7 @@ class MainConfiguration implements ConfigurationInterface
                     ->useAttributeAsKey('id')
                     ->prototype('array')
                         ->performNoDeepMerging()
-                        ->beforeNormalization()->ifString()->then(fn ($v) => ['value' => $v])->end()
-                        ->beforeNormalization()
-                            ->ifTrue(fn ($v) => \is_array($v) && isset($v['value']))
-                            ->then(fn ($v) => preg_split('/\s*,\s*/', $v['value']))
-                        ->end()
+                        ->beforeNormalization()->ifString()->then(static fn ($v) => preg_split('/\s*,\s*/', $v))->end()
                         ->prototype('scalar')->end()
                     ->end()
                 ->end()
@@ -159,7 +155,7 @@ class MainConfiguration implements ConfigurationInterface
                             ->scalarNode('host')->defaultNull()->end()
                             ->integerNode('port')->defaultNull()->end()
                             ->arrayNode('ips', 'ip')
-                                ->beforeNormalization()->ifString()->then(fn ($v) => [$v])->end()
+                                ->acceptAndWrap(['string'])
                                 ->prototype('scalar')->end()
                             ->end()
                             ->arrayNode('attributes', 'attribute')
@@ -168,14 +164,14 @@ class MainConfiguration implements ConfigurationInterface
                             ->end()
                             ->scalarNode('route')->defaultNull()->end()
                             ->arrayNode('methods', 'method')
-                                ->beforeNormalization()->ifString()->then(fn ($v) => preg_split('/\s*,\s*/', $v))->end()
+                                ->beforeNormalization()->ifString()->then(static fn ($v) => preg_split('/\s*,\s*/', $v))->end()
                                 ->prototype('scalar')->end()
                             ->end()
                             ->scalarNode('allow_if')->defaultNull()->end()
                         ->end()
                         ->children()
                             ->arrayNode('roles', 'role')
-                                ->beforeNormalization()->ifString()->then(fn ($v) => preg_split('/\s*,\s*/', $v))->end()
+                                ->beforeNormalization()->ifString()->then(static fn ($v) => preg_split('/\s*,\s*/', $v))->end()
                                 ->prototype('scalar')->end()
                             ->end()
                         ->end()
@@ -205,12 +201,12 @@ class MainConfiguration implements ConfigurationInterface
             ->scalarNode('pattern')
                 ->beforeNormalization()
                     ->ifArray()
-                    ->then(fn ($v) => \sprintf('(?:%s)', implode('|', $v)))
+                    ->then(static fn ($v) => \sprintf('(?:%s)', implode('|', $v)))
                 ->end()
             ->end()
             ->scalarNode('host')->end()
             ->arrayNode('methods')
-                ->beforeNormalization()->ifString()->then(fn ($v) => preg_split('/\s*,\s*/', $v))->end()
+                ->beforeNormalization()->ifString()->then(static fn ($v) => preg_split('/\s*,\s*/', $v))->end()
                 ->prototype('scalar')->end()
             ->end()
             ->booleanNode('security')->defaultTrue()->end()
@@ -233,11 +229,11 @@ class MainConfiguration implements ConfigurationInterface
                 ->treatTrueLike([])
                 ->canBeUnset()
                 ->beforeNormalization()
-                    ->ifTrue(fn ($v): bool => \is_array($v) && (isset($v['csrf_token_manager']) xor isset($v['enable_csrf'])))
-                    ->then(function (array $v): array {
+                    ->ifArray()
+                    ->then(static function ($v) {
                         if (isset($v['csrf_token_manager'])) {
-                            $v['enable_csrf'] = true;
-                        } elseif ($v['enable_csrf']) {
+                            $v['enable_csrf'] ??= true;
+                        } elseif ($v['enable_csrf'] ?? false) {
                             $v['csrf_token_manager'] = 'security.csrf.token_manager';
                         }
 
@@ -254,7 +250,7 @@ class MainConfiguration implements ConfigurationInterface
                     ->booleanNode('invalidate_session')->defaultTrue()->end()
                     ->arrayNode('clear_site_data')
                         ->performNoDeepMerging()
-                        ->beforeNormalization()->ifString()->then(fn ($v) => $v ? array_map('trim', explode(',', $v)) : [])->end()
+                        ->beforeNormalization()->ifString()->then(static fn ($v) => $v ? array_map('trim', explode(',', $v)) : [])->end()
                         ->enumPrototype()
                             ->values([
                                 '*', 'cache', 'cookies', 'storage', 'executionContexts',
@@ -265,9 +261,10 @@ class MainConfiguration implements ConfigurationInterface
                 ->children()
                     ->arrayNode('delete_cookies', 'delete_cookie')
                         ->normalizeKeys(false)
+                        ->acceptAndWrap(['string'])
                         ->beforeNormalization()
-                            ->ifTrue(fn ($v) => \is_array($v) && \is_int(key($v)))
-                            ->then(fn ($v) => array_map(fn ($v) => ['name' => $v], $v))
+                            ->ifArray()
+                            ->then(static fn ($v) => array_map(static fn ($v) => \is_string($v) ? ['name' => $v] : $v, $v))
                         ->end()
                         ->useAttributeAsKey('name')
                         ->prototype('array')
@@ -379,10 +376,7 @@ class MainConfiguration implements ConfigurationInterface
                 ->arrayNode('chain')
                     ->children()
                         ->arrayNode('providers', 'provider')
-                            ->beforeNormalization()
-                                ->ifString()
-                                ->then(fn ($v) => preg_split('/\s*,\s*/', $v))
-                            ->end()
+                            ->beforeNormalization()->ifString()->then(static fn ($v) => preg_split('/\s*,\s*/', $v))->end()
                             ->prototype('scalar')->end()
                         ->end()
                     ->end()
@@ -427,7 +421,7 @@ class MainConfiguration implements ConfigurationInterface
                     ->prototype('array')
                         ->canBeUnset()
                         ->performNoDeepMerging()
-                        ->beforeNormalization()->ifString()->then(fn ($v) => ['algorithm' => $v])->end()
+                        ->acceptAndWrap(['string'], 'algorithm')
                         ->children()
                             ->scalarNode('algorithm')
                                 ->cannotBeEmpty()
@@ -437,8 +431,8 @@ class MainConfiguration implements ConfigurationInterface
                                 ->end()
                             ->end()
                             ->arrayNode('migrate_from')
+                                ->acceptAndWrap(['string'])
                                 ->prototype('scalar')->end()
-                                ->beforeNormalization()->castToArray()->end()
                             ->end()
                             ->scalarNode('hash_algorithm')->info('Name of hashing algorithm for PBKDF2 (i.e. sha256, sha512, etc..) See hash_algos() for a list of supported algorithms.')->defaultValue('sha512')->end()
                             ->scalarNode('key_length')->defaultValue(40)->end()
