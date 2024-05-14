@@ -10,6 +10,7 @@ CHANGELOG
  * Deprecate the `security.hide_user_not_found` config option in favor of `security.expose_security_errors`
  * Add ability to fetch LDAP roles
  * Add `OAuth2TokenHandlerFactory` for `AccessTokenFactory`
+ * Add discovery support to `OidcTokenHandler` and `OidcUserInfoTokenHandler`
 
 7.2
 ---
