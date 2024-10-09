@@ -11,8 +11,10 @@
 
 namespace Symfony\Bundle\SecurityBundle\Tests\DependencyInjection;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
-use Symfony\Bridge\PhpUnit\ExpectUserDeprecationMessageTrait;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\MainConfiguration;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory\AuthenticatorFactoryInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -21,8 +23,6 @@ use Symfony\Component\Security\Http\Authentication\ExposeSecurityLevel;
 
 class MainConfigurationTest extends TestCase
 {
-    use ExpectUserDeprecationMessageTrait;
-
     /**
      * The minimal, required config needed to not have any required validation
      * issues.
@@ -259,11 +259,9 @@ class MainConfigurationTest extends TestCase
         yield [['expose_security_errors' => 'all'], ExposeSecurityLevel::All];
     }
 
-    /**
-     * @dataProvider provideHideUserNotFoundLegacyData
-     *
-     * @group legacy
-     */
+    #[DataProvider('provideHideUserNotFoundLegacyData')]
+    #[IgnoreDeprecations]
+    #[Group('legacy')]
     public function testExposeSecurityErrorsWithLegacyConfig(array $config, ExposeSecurityLevel $expectedExposeSecurityErrors, ?bool $expectedHideUserNotFound)
     {
         $this->expectUserDeprecationMessage('Since symfony/security-bundle 7.3: The "hide_user_not_found" option is deprecated and will be removed in 8.0. Use the "expose_security_errors" option instead.');
