@@ -9,6 +9,7 @@ CHANGELOG
  * Add `expose_security_errors` config option to display `AccountStatusException`
  * Deprecate the `security.hide_user_not_found` config option in favor of `security.expose_security_errors`
  * Add ability to fetch LDAP roles
+ * Add `OAuth2TokenHandlerFactory` for `AccessTokenFactory`
 
 7.2
 ---
