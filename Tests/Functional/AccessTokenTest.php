@@ -353,6 +353,8 @@ class AccessTokenTest extends AbstractWebTestCase
 
     /**
      * @dataProvider validAccessTokens
+     *
+     * @requires extension openssl
      */
     public function testOidcSuccess(string $token)
     {
@@ -367,6 +369,8 @@ class AccessTokenTest extends AbstractWebTestCase
 
     /**
      * @dataProvider invalidAccessTokens
+     *
+     * @requires extension openssl
      */
     public function testOidcFailure(string $token)
     {
