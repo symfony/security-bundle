@@ -29,6 +29,7 @@ use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestMatcher\PathRequestMatcher;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\PasswordHasherInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\User\InMemoryUserChecker;
@@ -883,7 +884,7 @@ class SecurityExtensionTest extends TestCase
         $container->loadFromExtension('security', [
             'password_hashers' => [
                 'legacy' => 'md5',
-                'App\User' => [
+                TestUserChecker::class => [
                     'id' => 'App\Security\CustomHasher',
                     'migrate_from' => 'legacy',
                 ],
@@ -895,11 +896,19 @@ class SecurityExtensionTest extends TestCase
 
         $hashersMap = $container->getDefinition('security.password_hasher_factory')->getArgument(0);
 
-        $this->assertArrayHasKey('App\User', $hashersMap);
-        $this->assertEquals($hashersMap['App\User'], [
+        $this->assertArrayHasKey(TestUserChecker::class, $hashersMap);
+        $this->assertEquals($hashersMap[TestUserChecker::class], [
             'instance' => new Reference('App\Security\CustomHasher'),
             'migrate_from' => ['legacy'],
         ]);
+
+        $legacyAlias = \sprintf('%s $%s', PasswordHasherInterface::class, 'legacy');
+        $this->assertTrue($container->hasAlias($legacyAlias));
+        $definition = $container->getDefinition((string) $container->getAlias($legacyAlias));
+        $this->assertSame(PasswordHasherInterface::class, $definition->getClass());
+
+        $this->assertFalse($container->hasAlias(\sprintf('%s $%s', PasswordHasherInterface::class, 'symfonyBundleSecurityBundleTestsDependencyInjectionTestUserChecker')));
+        $this->assertFalse($container->hasAlias(\sprintf('.%s $%s', PasswordHasherInterface::class, TestUserChecker::class)));
     }
 
     public function testAuthenticatorsDecoration()
