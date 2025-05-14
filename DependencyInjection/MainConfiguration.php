@@ -76,7 +76,7 @@ class MainConfiguration implements ConfigurationInterface
                     ->setDeprecated('symfony/security-bundle', '7.3', 'The "%node%" option is deprecated and will be removed in 8.0. Use the "expose_security_errors" option instead.')
                 ->end()
                 ->enumNode('expose_security_errors')
-                    ->beforeNormalization()->ifString()->then(fn ($v) => ['value' => ExposeSecurityLevel::tryFrom($v)])->end()
+                    ->beforeNormalization()->ifString()->then(fn ($v) => ExposeSecurityLevel::tryFrom($v))->end()
                     ->values(ExposeSecurityLevel::cases())
                     ->defaultValue(ExposeSecurityLevel::None)
                 ->end()

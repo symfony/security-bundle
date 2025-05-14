@@ -254,6 +254,9 @@ class MainConfigurationTest extends TestCase
         yield [['expose_security_errors' => ExposeSecurityLevel::None], ExposeSecurityLevel::None];
         yield [['expose_security_errors' => ExposeSecurityLevel::AccountStatus], ExposeSecurityLevel::AccountStatus];
         yield [['expose_security_errors' => ExposeSecurityLevel::All], ExposeSecurityLevel::All];
+        yield [['expose_security_errors' => 'none'], ExposeSecurityLevel::None];
+        yield [['expose_security_errors' => 'account_status'], ExposeSecurityLevel::AccountStatus];
+        yield [['expose_security_errors' => 'all'], ExposeSecurityLevel::All];
     }
 
     /**
