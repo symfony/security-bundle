@@ -59,6 +59,10 @@ class MainConfiguration implements ConfigurationInterface
             ->beforeNormalization()
                 ->always()
                 ->then(function ($v) {
+                    if (isset($v['hide_user_not_found']) && isset($v['expose_security_errors'])) {
+                        throw new InvalidConfigurationException('You cannot use both "hide_user_not_found" and "expose_security_errors" at the same time.');
+                    }
+
                     if (isset($v['hide_user_not_found']) && !isset($v['expose_security_errors'])) {
                         $v['expose_security_errors'] = $v['hide_user_not_found'] ? ExposeSecurityLevel::None : ExposeSecurityLevel::All;
                     }

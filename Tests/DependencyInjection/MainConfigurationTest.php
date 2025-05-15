@@ -283,4 +283,18 @@ class MainConfigurationTest extends TestCase
         yield [['hide_user_not_found' => true], ExposeSecurityLevel::None, true];
         yield [['hide_user_not_found' => false], ExposeSecurityLevel::All, false];
     }
+
+    public function testCannotUseHideUserNotFoundAndExposeSecurityErrorsAtTheSameTime()
+    {
+        $processor = new Processor();
+        $configuration = new MainConfiguration([], []);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('You cannot use both "hide_user_not_found" and "expose_security_errors" at the same time.');
+
+        $processor->processConfiguration($configuration, [static::$minimalConfig + [
+            'hide_user_not_found' => true,
+            'expose_security_errors' => ExposeSecurityLevel::None,
+        ]]);
+    }
 }
