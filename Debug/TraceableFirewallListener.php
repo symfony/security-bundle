@@ -16,6 +16,7 @@ use Symfony\Bundle\SecurityBundle\Security\FirewallContext;
 use Symfony\Bundle\SecurityBundle\Security\LazyFirewallContext;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\Security\Http\Authenticator\Debug\TraceableAuthenticatorManagerListener;
+use Symfony\Component\Security\Http\Firewall\AbstractListener;
 use Symfony\Component\Security\Http\Firewall\FirewallListenerInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
@@ -88,7 +89,11 @@ final class TraceableFirewallListener extends FirewallListener implements ResetI
         }
 
         foreach ($requestListeners as $listener) {
-            $listener($event);
+            if (!$listener instanceof FirewallListenerInterface) {
+                $listener($event);
+            } elseif (false !== $listener->supports($event->getRequest())) {
+                $listener->authenticate($event);
+            }
 
             if ($event->hasResponse()) {
                 break;
