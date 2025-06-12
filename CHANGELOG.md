@@ -1,6 +1,28 @@
 CHANGELOG
 =========
 
+7.4
+---
+
+ * Register alias for argument for password hasher when its key is not a class name:
+
+    With the following configuration:
+    ```yaml
+    security:
+      password_hashers:
+          recovery_code: auto
+    ```
+
+    It is possible to inject the `recovery_code` password hasher in a service:
+
+    ```php
+    public function __construct(
+        #[Target('recovery_code')]
+        private readonly PasswordHasherInterface $passwordHasher,
+    ) {
+    }
+    ```
+
 7.3
 ---
 
