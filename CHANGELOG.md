@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+8.0
+---
+
+ * Remove `LazyFirewallContext::__invoke()`
+
 7.4
 ---
 
