@@ -12,6 +12,7 @@
 namespace Symfony\Bundle\SecurityBundle\Security;
 
 use Symfony\Component\Security\Http\Firewall\ExceptionListener;
+use Symfony\Component\Security\Http\Firewall\FirewallListenerInterface;
 use Symfony\Component\Security\Http\Firewall\LogoutListener;
 
 /**
@@ -28,7 +29,7 @@ class FirewallContext
     private ?FirewallConfig $config;
 
     /**
-     * @param iterable<mixed, callable> $listeners
+     * @param iterable<mixed, callable|FirewallListenerInterface> $listeners
      */
     public function __construct(iterable $listeners, ?ExceptionListener $exceptionListener = null, ?LogoutListener $logoutListener = null, ?FirewallConfig $config = null)
     {
@@ -47,7 +48,7 @@ class FirewallContext
     }
 
     /**
-     * @return iterable<mixed, callable>
+     * @return iterable<mixed, callable|FirewallListenerInterface>
      */
     public function getListeners(): iterable
     {
