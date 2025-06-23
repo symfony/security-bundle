@@ -22,6 +22,7 @@ CHANGELOG
     ) {
     }
     ```
+ * Deprecate `LazyFirewallContext::__invoke()`
 
 7.3
 ---
