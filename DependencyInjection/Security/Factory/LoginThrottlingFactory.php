@@ -13,6 +13,7 @@ namespace Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory;
 
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\NodeDefinition;
+use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
@@ -21,6 +22,7 @@ use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\RateLimiter\RequestRateLimiterInterface;
 use Symfony\Component\Lock\LockInterface;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\RateLimiter\Storage\CacheStorage;
 use Symfony\Component\Security\Http\RateLimiter\DefaultLoginRateLimiter;
 
@@ -115,6 +117,18 @@ class LoginThrottlingFactory implements AuthenticatorFactoryInterface
         $limiterConfig['id'] = $name;
         $limiter->replaceArgument(0, $limiterConfig);
 
-        $container->registerAliasForArgument($limiterId, RateLimiterFactory::class, $name.'.limiter');
+        $factoryAlias = $container->registerAliasForArgument($limiterId, RateLimiterFactory::class, $name.'.limiter');
+
+        if (interface_exists(RateLimiterFactoryInterface::class)) {
+            $container->registerAliasForArgument($limiterId, RateLimiterFactoryInterface::class, $name.'.limiter');
+            $container->registerAliasForArgument($limiterId, RateLimiterFactoryInterface::class, $name);
+            $factoryAlias->setDeprecated('symfony/security-bundle', '7.4', \sprintf('The "%%alias_id%%" autowiring alias is deprecated and will be removed in 8.0, use "%s $%s" instead.', RateLimiterFactoryInterface::class, (new Target($name.'.limiter'))->getParsedName()));
+
+            $internalAliasId = \sprintf('.%s $%s.limiter', RateLimiterFactory::class, $name);
+
+            if ($container->hasAlias($internalAliasId)) {
+                $container->getAlias($internalAliasId)->setDeprecated('symfony/security-bundle', '7.4', \sprintf('The "%%alias_id%%" autowiring alias is deprecated and will be removed in 8.0, use "%s $%s" instead.', RateLimiterFactoryInterface::class, (new Target($name.'.limiter'))->getParsedName()));
+            }
+        }
     }
 }
