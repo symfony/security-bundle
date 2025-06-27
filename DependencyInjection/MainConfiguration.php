@@ -56,28 +56,11 @@ class MainConfiguration implements ConfigurationInterface
 
         $rootNode
             ->docUrl('https://symfony.com/doc/{version:major}.{version:minor}/reference/configuration/security.html', 'symfony/security-bundle')
-            ->beforeNormalization()
-                ->always()
-                ->then(function ($v) {
-                    if (isset($v['hide_user_not_found']) && isset($v['expose_security_errors'])) {
-                        throw new InvalidConfigurationException('You cannot use both "hide_user_not_found" and "expose_security_errors" at the same time.');
-                    }
-
-                    if (isset($v['hide_user_not_found']) && !isset($v['expose_security_errors'])) {
-                        $v['expose_security_errors'] = $v['hide_user_not_found'] ? ExposeSecurityLevel::None : ExposeSecurityLevel::All;
-                    }
-
-                    return $v;
-                })
-            ->end()
             ->children()
                 ->scalarNode('access_denied_url')->defaultNull()->example('/foo/error403')->end()
                 ->enumNode('session_fixation_strategy')
                     ->values([SessionAuthenticationStrategy::NONE, SessionAuthenticationStrategy::MIGRATE, SessionAuthenticationStrategy::INVALIDATE])
                     ->defaultValue(SessionAuthenticationStrategy::MIGRATE)
-                ->end()
-                ->booleanNode('hide_user_not_found')
-                    ->setDeprecated('symfony/security-bundle', '7.3', 'The "%node%" option is deprecated and will be removed in 8.0. Use the "expose_security_errors" option instead.')
                 ->end()
                 ->enumNode('expose_security_errors')
                     ->beforeNormalization()->ifString()->then(fn ($v) => ExposeSecurityLevel::tryFrom($v))->end()
