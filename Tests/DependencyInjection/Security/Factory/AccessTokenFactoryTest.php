@@ -104,53 +104,9 @@ class AccessTokenFactoryTest extends TestCase
         $config = [
             'token_handler' => [
                 'oidc' => [
-                    'algorithm' => 'RS256',
-                    'issuers' => ['https://www.example.com'],
-                    'audience' => 'audience',
-                ],
-            ],
-        ];
-
-        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
-
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage('You must set either "discovery" or "key" or "keyset".');
-
-        $this->processConfig($config, $factory);
-    }
-
-    public function testInvalidOidcTokenHandlerConfigurationDuplicatedKeyParameters()
-    {
-        $config = [
-            'token_handler' => [
-                'oidc' => [
-                    'algorithm' => 'RS256',
-                    'issuers' => ['https://www.example.com'],
-                    'audience' => 'audience',
-                    'key' => 'key',
-                    'keyset' => 'keyset',
-                ],
-            ],
-        ];
-
-        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
-
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage('You cannot use both "key" and "keyset" at the same time.');
-
-        $this->processConfig($config, $factory);
-    }
-
-    public function testInvalidOidcTokenHandlerConfigurationDuplicatedAlgorithmParameters()
-    {
-        $config = [
-            'token_handler' => [
-                'oidc' => [
-                    'algorithm' => 'RS256',
                     'algorithms' => ['RS256'],
                     'issuers' => ['https://www.example.com'],
                     'audience' => 'audience',
-                    'keyset' => 'keyset',
                 ],
             ],
         ];
@@ -158,7 +114,7 @@ class AccessTokenFactoryTest extends TestCase
         $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
 
         $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage('You cannot use both "algorithm" and "algorithms" at the same time.');
+        $this->expectExceptionMessage('You must set either "discovery" or "keyset".');
 
         $this->processConfig($config, $factory);
     }
@@ -181,46 +137,6 @@ class AccessTokenFactoryTest extends TestCase
         $this->expectExceptionMessage('The child config "algorithms" under "access_token.token_handler.oidc" must be configured: Algorithms used to sign the token.');
 
         $this->processConfig($config, $factory);
-    }
-
-    /**
-     * @group legacy
-     *
-     * @expectedDeprecation Since symfony/security-bundle 7.1: The "key" option is deprecated and will be removed in 8.0. Use the "keyset" option instead.
-     */
-    public function testOidcTokenHandlerConfigurationWithSingleAlgorithm()
-    {
-        $container = new ContainerBuilder();
-        $jwk = '{"kty":"EC","crv":"P-256","x":"0QEAsI1wGI-dmYatdUZoWSRWggLEpyzopuhwk-YUnA4","y":"KYl-qyZ26HobuYwlQh-r0iHX61thfP82qqEku7i0woo","d":"iA_TV2zvftni_9aFAQwFO_9aypfJFCSpcCyevDvz220"}';
-        $config = [
-            'token_handler' => [
-                'oidc' => [
-                    'algorithm' => 'RS256',
-                    'issuers' => ['https://www.example.com'],
-                    'audience' => 'audience',
-                    'key' => $jwk,
-                ],
-            ],
-        ];
-
-        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
-        $finalizedConfig = $this->processConfig($config, $factory);
-
-        $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
-
-        $this->assertTrue($container->hasDefinition('security.authenticator.access_token.firewall1'));
-        $this->assertTrue($container->hasDefinition('security.access_token_handler.firewall1'));
-
-        $expected = [
-            'index_0' => (new ChildDefinition('security.access_token_handler.oidc.signature'))
-                ->replaceArgument(0, ['RS256']),
-            'index_1' => (new ChildDefinition('security.access_token_handler.oidc.jwkset'))
-                ->replaceArgument(0, \sprintf('{"keys":[%s]}', $jwk)),
-            'index_2' => 'audience',
-            'index_3' => ['https://www.example.com'],
-            'index_4' => 'sub',
-        ];
-        $this->assertEquals($expected, $container->getDefinition('security.access_token_handler.firewall1')->getArguments());
     }
 
     public function testOidcTokenHandlerConfigurationWithMultipleAlgorithms()

@@ -5,6 +5,7 @@ CHANGELOG
 ---
 
  * Remove the deprecated `hide_user_not_found` configuration option, use `expose_security_errors` instead
+ * Remove the deprecated `algorithm` and `key` options from the OIDC token handler configuration, use `algorithms` and `keyset` instead
  * Remove `LazyFirewallContext::__invoke()`
  * Make `ExpressionCacheWarmer` class `final`
 
