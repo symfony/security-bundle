@@ -4,6 +4,7 @@ CHANGELOG
 8.0
 ---
 
+ * Remove the deprecated `hide_user_not_found` configuration option, use `expose_security_errors` instead
  * Remove `LazyFirewallContext::__invoke()`
 
 7.4
