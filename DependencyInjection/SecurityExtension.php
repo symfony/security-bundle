@@ -186,6 +186,10 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
             $container->getDefinition('security.command.user_password_hash')->replaceArgument(1, array_keys($config['password_hashers']));
         }
 
+        if ($container->hasDefinition('security.role_hierarchy')) {
+            $loader->load('security_role_hierarchy_dump_command.php');
+        }
+
         $container->registerForAutoconfiguration(VoterInterface::class)
             ->addTag('security.voter');
     }
