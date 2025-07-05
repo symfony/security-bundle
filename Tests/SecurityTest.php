@@ -154,7 +154,7 @@ class SecurityTest extends TestCase
             ->method('getProvidedServices')
             ->willReturn([
                 'security.authenticator.custom.dev' => $authenticator,
-                'security.authenticator.remember_me.main' => $authenticator
+                'security.authenticator.remember_me.main' => $authenticator,
             ])
         ;
         $firewallAuthenticatorLocator
@@ -287,7 +287,7 @@ class SecurityTest extends TestCase
             ->method('getProvidedServices')
             ->willReturn([
                 'security.authenticator.custom.main' => $authenticator,
-                'security.authenticator.other.main' => $authenticator
+                'security.authenticator.other.main' => $authenticator,
             ])
         ;
 
