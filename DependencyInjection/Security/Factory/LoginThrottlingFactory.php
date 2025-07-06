@@ -55,6 +55,8 @@ class LoginThrottlingFactory implements AuthenticatorFactoryInterface
                 ->integerNode('max_attempts')->defaultValue(5)->end()
                 ->scalarNode('interval')->defaultValue('1 minute')->end()
                 ->scalarNode('lock_factory')->info('The service ID of the lock factory used by the login rate limiter (or null to disable locking).')->defaultNull()->end()
+                ->scalarNode('cache_pool')->info('The cache pool to use for storing the limiter state')->defaultValue('cache.rate_limiter')->end()
+                ->scalarNode('storage_service')->info('The service ID of a custom storage implementation, this precedes any configured "cache_pool"')->defaultNull()->end()
             ->end();
     }
 
@@ -70,6 +72,8 @@ class LoginThrottlingFactory implements AuthenticatorFactoryInterface
                 'limit' => $config['max_attempts'],
                 'interval' => $config['interval'],
                 'lock_factory' => $config['lock_factory'],
+                'cache_pool' => $config['cache_pool'],
+                'storage_service' => $config['storage_service'],
             ];
             $this->registerRateLimiter($container, $localId = '_login_local_'.$firewallName, $limiterOptions);
 
@@ -93,9 +97,6 @@ class LoginThrottlingFactory implements AuthenticatorFactoryInterface
 
     private function registerRateLimiter(ContainerBuilder $container, string $name, array $limiterConfig): void
     {
-        // default configuration (when used by other DI extensions)
-        $limiterConfig += ['lock_factory' => 'lock.factory', 'cache_pool' => 'cache.rate_limiter'];
-
         $limiter = $container->setDefinition($limiterId = 'limiter.'.$name, new ChildDefinition('limiter'));
 
         if (null !== $limiterConfig['lock_factory']) {
