@@ -187,7 +187,7 @@ class SecurityDataCollector extends DataCollector implements LateDataCollectorIn
                 if ($this->data['impersonated'] && null !== $switchUserConfig = $firewallConfig->getSwitchUser()) {
                     $exitPath = $request->getRequestUri();
                     $exitPath .= null === $request->getQueryString() ? '?' : '&';
-                    $exitPath .= sprintf('%s=%s', urlencode($switchUserConfig['parameter']), SwitchUserListener::EXIT_VALUE);
+                    $exitPath .= \sprintf('%s=%s', urlencode($switchUserConfig['parameter']), SwitchUserListener::EXIT_VALUE);
 
                     $this->data['impersonation_exit_path'] = $exitPath;
                 }

@@ -255,7 +255,7 @@ class ForceLoginController
         $user = new InMemoryUser('chalasr', 'the-password', ['ROLE_FOO']);
         $this->security->login($user, $this->authenticator);
 
-        return new JsonResponse(['message' => sprintf('Welcome @%s!', $this->security->getUser()->getUserIdentifier())]);
+        return new JsonResponse(['message' => \sprintf('Welcome @%s!', $this->security->getUser()->getUserIdentifier())]);
     }
 }
 
@@ -279,6 +279,6 @@ class LoggedInController
 {
     public function __invoke(UserInterface $user)
     {
-        return new JsonResponse(['message' => sprintf('Welcome back @%s', $user->getUserIdentifier())]);
+        return new JsonResponse(['message' => \sprintf('Welcome back @%s', $user->getUserIdentifier())]);
     }
 }
