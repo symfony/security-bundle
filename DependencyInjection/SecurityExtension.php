@@ -708,7 +708,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
             $hasherMap[$class] = $this->createHasher($hasher);
             // The key is not a class, so we register an alias for argument to
             // ease getting the hasher
-            if (!class_exists($class) && !interface_exists($class)) {
+            if (!class_exists($class) && !interface_exists($class, false)) {
                 $id = 'security.password_hasher.'.$class;
                 $container
                     ->register($id, PasswordHasherInterface::class)

@@ -50,7 +50,6 @@
         "symfony/twig-bridge": "^7.4|^8.0",
         "symfony/validator": "^7.4|^8.0",
         "symfony/yaml": "^7.4|^8.0",
-        "twig/twig": "^3.12",
         "web-token/jwt-library": "^3.3.2|^4.0"
     },
     "autoload": {
