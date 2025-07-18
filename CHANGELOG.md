@@ -8,6 +8,7 @@ CHANGELOG
  * Remove the deprecated `algorithm` and `key` options from the OIDC token handler configuration, use `algorithms` and `keyset` instead
  * Remove `LazyFirewallContext::__invoke()`
  * Make `ExpressionCacheWarmer` class `final`
+ * Remove autowiring aliases for `RateLimiterFactory`; use `RateLimiterFactoryInterface` instead
 
 7.4
 ---
