@@ -986,7 +986,7 @@ class TestUserChecker implements UserCheckerInterface
     {
     }
 
-    public function checkPostAuth(UserInterface $user): void
+    public function checkPostAuth(UserInterface $user, ?TokenInterface $token = null): void
     {
     }
 }
