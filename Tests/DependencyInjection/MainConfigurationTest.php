@@ -12,7 +12,6 @@
 namespace Symfony\Bundle\SecurityBundle\Tests\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
-use Symfony\Bridge\PhpUnit\ExpectUserDeprecationMessageTrait;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\MainConfiguration;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory\AuthenticatorFactoryInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -21,8 +20,6 @@ use Symfony\Component\Security\Http\Authentication\ExposeSecurityLevel;
 
 class MainConfigurationTest extends TestCase
 {
-    use ExpectUserDeprecationMessageTrait;
-
     /**
      * The minimal, required config needed to not have any required validation
      * issues.
@@ -258,5 +255,4 @@ class MainConfigurationTest extends TestCase
         yield [['expose_security_errors' => 'account_status'], ExposeSecurityLevel::AccountStatus];
         yield [['expose_security_errors' => 'all'], ExposeSecurityLevel::All];
     }
-
 }
