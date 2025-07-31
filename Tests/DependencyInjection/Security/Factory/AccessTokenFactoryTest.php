@@ -11,6 +11,7 @@
 
 namespace Symfony\Bundle\SecurityBundle\Tests\DependencyInjection\Security\Factory;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
@@ -422,9 +423,7 @@ class AccessTokenFactoryTest extends TestCase
         $this->assertEquals($expected, $container->getDefinition('security.access_token_handler.firewall1')->getArguments());
     }
 
-    /**
-     * @dataProvider getOidcUserInfoConfiguration
-     */
+    #[DataProvider('getOidcUserInfoConfiguration')]
     public function testOidcUserInfoTokenHandlerConfigurationWithBaseUri(array|string $configuration)
     {
         $container = new ContainerBuilder();

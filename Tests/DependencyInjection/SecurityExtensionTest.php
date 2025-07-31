@@ -11,6 +11,7 @@
 
 namespace Symfony\Bundle\SecurityBundle\Tests\DependencyInjection;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory\AuthenticatorFactoryInterface;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory\FirewallListenerFactoryInterface;
@@ -278,7 +279,7 @@ class SecurityExtensionTest extends TestCase
         $this->assertSame($requestMatcherId, (string) $args[0]);
     }
 
-    /** @dataProvider provideAdditionalRequestMatcherConstraints */
+    #[DataProvider('provideAdditionalRequestMatcherConstraints')]
     public function testRegisterAccessControlWithRequestMatcherAndAdditionalOptionsThrowsInvalidException(array $additionalConstraints)
     {
         $container = $this->getRawContainer();
@@ -477,9 +478,7 @@ class SecurityExtensionTest extends TestCase
         $this->assertFalse($container->has(UserProviderInterface::class));
     }
 
-    /**
-     * @dataProvider acceptableIpsProvider
-     */
+    #[DataProvider('acceptableIpsProvider')]
     public function testAcceptableAccessControlIps($ips)
     {
         $container = $this->getRawContainer();
@@ -664,9 +663,7 @@ class SecurityExtensionTest extends TestCase
         ], 'security.authenticator.guard.main.0'];
     }
 
-    /**
-     * @dataProvider provideEntryPointRequiredData
-     */
+    #[DataProvider('provideEntryPointRequiredData')]
     public function testEntryPointRequired(array $firewall, string $messageRegex)
     {
         $container = $this->getRawContainer();
@@ -695,9 +692,7 @@ class SecurityExtensionTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider provideConfigureCustomAuthenticatorData
-     */
+    #[DataProvider('provideConfigureCustomAuthenticatorData')]
     public function testConfigureCustomAuthenticator(array $firewall, array $expectedAuthenticators)
     {
         $container = $this->getRawContainer();
@@ -770,9 +765,7 @@ class SecurityExtensionTest extends TestCase
         $this->assertTrue($container->has('security.listener.session.'.$firewallId));
     }
 
-    /**
-     * @dataProvider provideUserCheckerConfig
-     */
+    #[DataProvider('provideUserCheckerConfig')]
     public function testUserCheckerWithAuthenticatorManager(array $config, string $expectedUserCheckerClass)
     {
         $container = $this->getRawContainer();

@@ -11,6 +11,7 @@
 
 namespace Symfony\Bundle\SecurityBundle\Tests\DependencyInjection;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\SecurityExtension;
 use Symfony\Bundle\SecurityBundle\Tests\DependencyInjection\Fixtures\UserProvider\CustomProvider;
@@ -20,9 +21,7 @@ use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
 
 class XmlCustomProviderTest extends TestCase
 {
-    /**
-     * @dataProvider provideXmlConfigurationFile
-     */
+    #[DataProvider('provideXmlConfigurationFile')]
     public function testCustomProviderElement(string $configurationFile)
     {
         $container = new ContainerBuilder();
