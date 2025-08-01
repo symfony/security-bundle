@@ -13,7 +13,6 @@ namespace Symfony\Bundle\SecurityBundle\DependencyInjection\Security\AccessToken
 
 use Jose\Component\Core\Algorithm;
 use Symfony\Component\Config\Definition\Builder\NodeBuilder;
-use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
