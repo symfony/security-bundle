@@ -19,6 +19,7 @@ use Symfony\Component\Ldap\Adapter\ConnectionInterface;
 use Symfony\Component\Ldap\Adapter\ExtLdap\Adapter;
 use Symfony\Component\Ldap\Adapter\QueryInterface;
 use Symfony\Component\Ldap\Entry;
+use Symfony\Component\Ldap\Security\RoleFetcherInterface;
 
 class JsonLoginLdapTest extends AbstractWebTestCase
 {
