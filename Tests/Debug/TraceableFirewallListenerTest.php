@@ -11,6 +11,7 @@
 
 namespace Symfony\Bundle\SecurityBundle\Tests\Debug;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Debug\TraceableFirewallListener;
 use Symfony\Bundle\SecurityBundle\Security\FirewallMap;
@@ -34,9 +35,7 @@ use Symfony\Component\Security\Http\Firewall\AuthenticatorManagerListener;
 use Symfony\Component\Security\Http\Logout\LogoutUrlGenerator;
 use Symfony\Component\VarDumper\Caster\ClassStub;
 
-/**
- * @group time-sensitive
- */
+#[Group('time-sensitive')]
 class TraceableFirewallListenerTest extends TestCase
 {
     public function testOnKernelRequestRecordsListeners()

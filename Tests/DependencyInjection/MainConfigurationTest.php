@@ -231,9 +231,7 @@ class MainConfigurationTest extends TestCase
         $configuration->getConfigTreeBuilder();
     }
 
-    /**
-     * @dataProvider provideHideUserNotFoundData
-     */
+    #[DataProvider('provideHideUserNotFoundData')]
     public function testExposeSecurityErrors(array $config, ExposeSecurityLevel $expectedExposeSecurityErrors)
     {
         $config = array_merge(static::$minimalConfig, $config);

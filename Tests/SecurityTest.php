@@ -11,6 +11,7 @@
 
 namespace Symfony\Bundle\SecurityBundle\Tests;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -55,9 +56,7 @@ class SecurityTest extends TestCase
         $this->assertSame($token, $security->getToken());
     }
 
-    /**
-     * @dataProvider getUserTests
-     */
+    #[DataProvider('getUserTests')]
     public function testGetUser($userInToken, $expectedUser)
     {
         $token = $this->createMock(TokenInterface::class);
@@ -99,9 +98,7 @@ class SecurityTest extends TestCase
         $this->assertTrue($security->isGranted('SOME_ATTRIBUTE', 'SOME_SUBJECT'));
     }
 
-    /**
-     * @dataProvider getFirewallConfigTests
-     */
+    #[DataProvider('getFirewallConfigTests')]
     public function testGetFirewallConfig(Request $request, ?FirewallConfig $expectedFirewallConfig)
     {
         $firewallMap = $this->createMock(FirewallMap::class);
