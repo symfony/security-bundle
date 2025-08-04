@@ -19,6 +19,7 @@ use Symfony\Component\Ldap\Adapter\ConnectionInterface;
 use Symfony\Component\Ldap\Adapter\ExtLdap\Adapter;
 use Symfony\Component\Ldap\Adapter\QueryInterface;
 use Symfony\Component\Ldap\Entry;
+use Symfony\Component\Ldap\Security\RoleFetcherInterface;
 
 class JsonLoginLdapTest extends AbstractWebTestCase
 {
@@ -32,7 +33,7 @@ class JsonLoginLdapTest extends AbstractWebTestCase
 
     public function testDefaultJsonLdapLoginSuccess()
     {
-        if (!interface_exists(\Symfony\Component\Ldap\Security\RoleFetcherInterface::class)) {
+        if (!interface_exists(RoleFetcherInterface::class)) {
             $this->markTestSkipped('The "LDAP" component does not support LDAP roles.');
         }
         // Given
