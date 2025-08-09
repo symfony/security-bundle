@@ -399,13 +399,13 @@ class AccessTokenTest extends AbstractWebTestCase
     public function testCasSuccess()
     {
         $casResponse = new MockResponse(<<<BODY
-            <cas:serviceResponse xmlns:cas='http://www.yale.edu/tp/cas'>
-                <cas:authenticationSuccess>
-                    <cas:user>dunglas</cas:user>
-                    <cas:proxyGrantingTicket>PGTIOU-84678-8a9d</cas:proxyGrantingTicket>
-                </cas:authenticationSuccess>
-            </cas:serviceResponse>
-        BODY
+                <cas:serviceResponse xmlns:cas='http://www.yale.edu/tp/cas'>
+                    <cas:authenticationSuccess>
+                        <cas:user>dunglas</cas:user>
+                        <cas:proxyGrantingTicket>PGTIOU-84678-8a9d</cas:proxyGrantingTicket>
+                    </cas:authenticationSuccess>
+                </cas:serviceResponse>
+            BODY
         );
 
         $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_cas.yml']);
