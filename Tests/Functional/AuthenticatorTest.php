@@ -32,7 +32,7 @@ class AuthenticatorTest extends AbstractWebTestCase
     }
 
     #[DataProvider('provideEmails')]
-    public function testWithoutUserProvider($email)
+    public function testWithoutUserProvider($email, $withinFirewall)
     {
         $client = $this->createClient(['test_case' => 'Authenticator', 'root_config' => 'no_user_provider.yml']);
 
