@@ -13,6 +13,7 @@ CHANGELOG
 7.4
 ---
 
+ * Add options to configure a cache pool and storage service for login throttling rate limiters
  * Register alias for argument for password hasher when its key is not a class name:
 
     With the following configuration:
