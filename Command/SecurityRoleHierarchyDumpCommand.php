@@ -17,7 +17,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Security\Core\Dumper\MermaidDirectionEnum;
+use Symfony\Component\Security\Core\Dumper\MermaidDirection;
 use Symfony\Component\Security\Core\Dumper\MermaidDumper;
 use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
 
@@ -43,9 +43,9 @@ class SecurityRoleHierarchyDumpCommand extends Command
                     'direction',
                     'd',
                     InputOption::VALUE_REQUIRED,
-                    'The direction of the flowchart ['.implode('|', $this->getAvailableDirections()).']',
-                    MermaidDirectionEnum::TOP_TO_BOTTOM->value,
-                    $this->getAvailableDirections()
+                    'The direction of the flowchart ['.implode('|', array_column(MermaidDirection::cases(), 'value')).']',
+                    MermaidDirection::TOP_TO_BOTTOM->value,
+                    array_column(MermaidDirection::cases(), 'value')
                 ),
             ])
             ->setHelp(<<<'USAGE'
@@ -61,34 +61,20 @@ class SecurityRoleHierarchyDumpCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-
-        if (null === $this->roleHierarchy) {
-            $io->getErrorStyle()->writeln('<comment>No role hierarchy is configured.</comment>');
-
-            return Command::SUCCESS;
-        }
-
         $direction = $input->getOption('direction');
 
-        if (!MermaidDirectionEnum::tryFrom($direction)) {
-            $io->getErrorStyle()->writeln(\sprintf('<error>Invalid direction, available options are "%s"</error>', implode('"', $this->getAvailableDirections())));
+        if (!$direction = MermaidDirection::tryFrom($direction)) {
+            $io->getErrorStyle()->writeln(\sprintf('<error>Invalid direction, available options are "%s"</error>', implode('"', array_column(MermaidDirection::cases(), 'value'))));
 
             return Command::FAILURE;
         }
 
         $dumper = new MermaidDumper();
-        $mermaidOutput = $dumper->dump($this->roleHierarchy, MermaidDirectionEnum::from($direction));
 
-        $output->writeln($mermaidOutput, OutputInterface::OUTPUT_RAW);
+        foreach (explode("\n", $dumper->dump($this->roleHierarchy, $direction)) as $line) {
+            $output->writeln($line, OutputInterface::OUTPUT_RAW);
+        }
 
         return Command::SUCCESS;
-    }
-
-    /**
-     * @return string[]
-     */
-    private function getAvailableDirections(): array
-    {
-        return array_map(fn ($case) => $case->value, MermaidDirectionEnum::cases());
     }
 }
