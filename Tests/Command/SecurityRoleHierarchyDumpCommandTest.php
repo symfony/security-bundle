@@ -34,7 +34,7 @@ class SecurityRoleHierarchyDumpCommandTest extends TestCase
 
         $this->assertSame(Command::SUCCESS, $exitCode);
         $output = $commandTester->getDisplay();
-        $expectedOutput = <<<EXPECTED
+        $expectedOutput = str_replace("\n", \PHP_EOL, <<<EXPECTED
             graph TB
                 ROLE_ADMIN
                 ROLE_USER
@@ -43,7 +43,7 @@ class SecurityRoleHierarchyDumpCommandTest extends TestCase
                 ROLE_SUPER_ADMIN --> ROLE_ADMIN
                 ROLE_SUPER_ADMIN --> ROLE_USER
 
-            EXPECTED;
+            EXPECTED);
 
         $this->assertSame($expectedOutput, $output);
     }
