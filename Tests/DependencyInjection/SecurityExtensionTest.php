@@ -141,6 +141,24 @@ class SecurityExtensionTest extends TestCase
         $this->assertTrue($container->getDefinition('security.authentication.switchuser_listener.some_firewall')->getArgument(9));
     }
 
+    public function testRoleHierarchyDumpCommandIsRegisteredWithRoleHierarchy()
+    {
+        $container = $this->getRawContainer();
+        $container->loadFromExtension('security', [
+            'role_hierarchy' => [
+                'ROLE_ADMIN' => ['ROLE_USER'],
+                'ROLE_SUPER_ADMIN' => ['ROLE_ADMIN', 'ROLE_ALLOWED_TO_SWITCH'],
+            ],
+            'firewalls' => [
+                'some_firewall' => [
+                ],
+            ],
+        ]);
+        $container->compile();
+
+        $this->assertTrue($container->hasDefinition('security.command.role_hierarchy_dump'));
+    }
+
     public function testPerListenerProvider()
     {
         $container = $this->getRawContainer();
