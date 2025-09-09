@@ -91,6 +91,7 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
         $node
             ->arrayNode($this->getKey())
                 ->fixXmlConfig($this->getKey())
+                ->fixXmlConfig('issuer')
                 ->validate()
                     ->ifTrue(static fn ($v) => !isset($v['algorithm']) && !isset($v['algorithms']))
                     ->thenInvalid('You must set either "algorithm" or "algorithms".')
