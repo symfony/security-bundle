@@ -125,26 +125,21 @@ class RememberMeFactory implements AuthenticatorFactoryInterface, PrependExtensi
 
     public function addConfiguration(NodeDefinition $node): void
     {
-        $builder = $node
-            ->fixXmlConfig('signature_property', 'signature_properties')
-            ->fixXmlConfig('user_provider')
-            ->children()
-        ;
-
+        $builder = $node->children();
         $builder
             ->scalarNode('secret')
                 ->cannotBeEmpty()
                 ->defaultValue('%kernel.secret%')
             ->end()
             ->scalarNode('service')->end()
-            ->arrayNode('user_providers')
+            ->arrayNode('user_providers', 'user_provider')
                 ->beforeNormalization()
                     ->ifString()->then(fn ($v) => [$v])
                 ->end()
                 ->prototype('scalar')->end()
             ->end()
             ->booleanNode('catch_exceptions')->defaultTrue()->end()
-            ->arrayNode('signature_properties')
+            ->arrayNode('signature_properties', 'signature_property')
                 ->prototype('scalar')->end()
                 ->requiresAtLeastOneElement()
                 ->info('An array of properties on your User that are used to sign the remember-me cookie. If any of these change, all existing cookies will become invalid.')

@@ -43,10 +43,10 @@ final class AccessTokenFactory extends AbstractFactory implements StatelessAuthe
     {
         parent::addConfiguration($node);
 
-        $builder = $node->fixXmlConfig('token_extractor')->children();
+        $builder = $node->children();
         $builder
             ->scalarNode('realm')->defaultNull()->end()
-            ->arrayNode('token_extractors')
+            ->arrayNode('token_extractors', 'token_extractor')
                 ->beforeNormalization()
                     ->ifString()
                     ->then(fn ($v) => [$v])
