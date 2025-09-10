@@ -89,8 +89,8 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
     {
         $node
             ->arrayNode($this->getKey())
-                ->fixXmlConfig($this->getKey())
                 ->fixXmlConfig('issuer')
+                ->fixXmlConfig('algorithm')
                 ->validate()
                     ->ifTrue(static fn ($v) => !isset($v['discovery']) && !isset($v['keyset']))
                     ->thenInvalid('You must set either "discovery" or "keyset".')
@@ -137,6 +137,7 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
                         ->info('JSON-encoded JWKSet used to sign the token (must contain a list of valid public keys).')
                     ->end()
                     ->arrayNode('encryption')
+                        ->fixXmlConfig('algorithm')
                         ->canBeEnabled()
                         ->children()
                             ->booleanNode('enforce')
