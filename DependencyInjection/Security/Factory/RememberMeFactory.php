@@ -126,6 +126,7 @@ class RememberMeFactory implements AuthenticatorFactoryInterface, PrependExtensi
     public function addConfiguration(NodeDefinition $node): void
     {
         $builder = $node
+            ->fixXmlConfig('signature_property', 'signature_properties')
             ->fixXmlConfig('user_provider')
             ->children()
         ;
