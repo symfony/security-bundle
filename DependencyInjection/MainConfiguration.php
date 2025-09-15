@@ -107,9 +107,8 @@ class MainConfiguration implements ConfigurationInterface
     private function addRoleHierarchySection(ArrayNodeDefinition $rootNode): void
     {
         $rootNode
-            ->fixXmlConfig('role', 'role_hierarchy')
             ->children()
-                ->arrayNode('role_hierarchy')
+                ->arrayNode('role_hierarchy', 'role')
                     ->useAttributeAsKey('id')
                     ->prototype('array')
                         ->performNoDeepMerging()
@@ -128,14 +127,10 @@ class MainConfiguration implements ConfigurationInterface
     private function addAccessControlSection(ArrayNodeDefinition $rootNode): void
     {
         $rootNode
-            ->fixXmlConfig('rule', 'access_control')
             ->children()
-                ->arrayNode('access_control')
+                ->arrayNode('access_control', 'rule')
                     ->cannotBeOverwritten()
                     ->prototype('array')
-                        ->fixXmlConfig('ip')
-                        ->fixXmlConfig('method')
-                        ->fixXmlConfig('attribute')
                         ->children()
                             ->scalarNode('request_matcher')->defaultNull()->end()
                             ->scalarNode('requires_channel')->defaultNull()->end()
@@ -146,24 +141,23 @@ class MainConfiguration implements ConfigurationInterface
                             ->end()
                             ->scalarNode('host')->defaultNull()->end()
                             ->integerNode('port')->defaultNull()->end()
-                            ->arrayNode('ips')
+                            ->arrayNode('ips', 'ip')
                                 ->beforeNormalization()->ifString()->then(fn ($v) => [$v])->end()
                                 ->prototype('scalar')->end()
                             ->end()
-                            ->arrayNode('attributes')
+                            ->arrayNode('attributes', 'attribute')
                                 ->useAttributeAsKey('key')
                                 ->prototype('scalar')->end()
                             ->end()
                             ->scalarNode('route')->defaultNull()->end()
-                            ->arrayNode('methods')
+                            ->arrayNode('methods', 'method')
                                 ->beforeNormalization()->ifString()->then(fn ($v) => preg_split('/\s*,\s*/', $v))->end()
                                 ->prototype('scalar')->end()
                             ->end()
                             ->scalarNode('allow_if')->defaultNull()->end()
                         ->end()
-                        ->fixXmlConfig('role')
                         ->children()
-                            ->arrayNode('roles')
+                            ->arrayNode('roles', 'role')
                                 ->beforeNormalization()->ifString()->then(fn ($v) => preg_split('/\s*,\s*/', $v))->end()
                                 ->prototype('scalar')->end()
                             ->end()
@@ -180,15 +174,13 @@ class MainConfiguration implements ConfigurationInterface
     private function addFirewallsSection(ArrayNodeDefinition $rootNode, array $factories): void
     {
         $firewallNodeBuilder = $rootNode
-            ->fixXmlConfig('firewall')
             ->children()
-                ->arrayNode('firewalls')
+                ->arrayNode('firewalls', 'firewall')
                     ->isRequired()
                     ->requiresAtLeastOneElement()
                     ->disallowNewKeysInSubsequentConfigs()
                     ->useAttributeAsKey('name')
                     ->prototype('array')
-                        ->fixXmlConfig('required_badge')
                         ->children()
         ;
 
@@ -253,9 +245,8 @@ class MainConfiguration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
-                ->fixXmlConfig('delete_cookie')
                 ->children()
-                    ->arrayNode('delete_cookies')
+                    ->arrayNode('delete_cookies', 'delete_cookie')
                         ->normalizeKeys(false)
                         ->beforeNormalization()
                             ->ifTrue(fn ($v) => \is_array($v) && \is_int(key($v)))
@@ -283,7 +274,7 @@ class MainConfiguration implements ConfigurationInterface
                     ->scalarNode('target_route')->defaultValue(null)->end()
                 ->end()
             ->end()
-            ->arrayNode('required_badges')
+            ->arrayNode('required_badges', 'required_badge')
                 ->info('A list of badges that must be present on the authenticated passport.')
                 ->validate()
                     ->always()
@@ -347,9 +338,8 @@ class MainConfiguration implements ConfigurationInterface
     private function addProvidersSection(ArrayNodeDefinition $rootNode): void
     {
         $providerNodeBuilder = $rootNode
-            ->fixXmlConfig('provider')
             ->children()
-                ->arrayNode('providers')
+                ->arrayNode('providers', 'provider')
                     ->example([
                         'my_memory_provider' => [
                             'memory' => [
@@ -370,9 +360,8 @@ class MainConfiguration implements ConfigurationInterface
             ->children()
                 ->scalarNode('id')->end()
                 ->arrayNode('chain')
-                    ->fixXmlConfig('provider')
                     ->children()
-                        ->arrayNode('providers')
+                        ->arrayNode('providers', 'provider')
                             ->beforeNormalization()
                                 ->ifString()
                                 ->then(fn ($v) => preg_split('/\s*,\s*/', $v))
@@ -406,9 +395,8 @@ class MainConfiguration implements ConfigurationInterface
     private function addPasswordHashersSection(ArrayNodeDefinition $rootNode): void
     {
         $rootNode
-            ->fixXmlConfig('password_hasher')
             ->children()
-                ->arrayNode('password_hashers')
+                ->arrayNode('password_hashers', 'password_hasher')
                     ->example([
                         'App\Entity\User1' => 'auto',
                         'App\Entity\User2' => [

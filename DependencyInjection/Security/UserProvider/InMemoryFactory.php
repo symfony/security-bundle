@@ -45,9 +45,8 @@ class InMemoryFactory implements UserProviderFactoryInterface
     public function addConfiguration(NodeDefinition $node): void
     {
         $node
-            ->fixXmlConfig('user')
             ->children()
-                ->arrayNode('users')
+                ->arrayNode('users', 'user')
                     ->useAttributeAsKey('identifier')
                     ->normalizeKeys(false)
                     ->prototype('array')
