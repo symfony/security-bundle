@@ -44,7 +44,7 @@ class SecurityDataCollectorTest extends TestCase
 {
     public function testCollectWhenSecurityIsDisabled()
     {
-        $collector = new SecurityDataCollector(null, null, null, null, null, null, true);
+        $collector = new SecurityDataCollector(null, null, null, null, null, null);
         $collector->collect(new Request(), new Response());
 
         $this->assertSame('security', $collector->getName());
@@ -64,7 +64,7 @@ class SecurityDataCollectorTest extends TestCase
     public function testCollectWhenAuthenticationTokenIsNull()
     {
         $tokenStorage = new TokenStorage();
-        $collector = new SecurityDataCollector($tokenStorage, $this->getRoleHierarchy(), null, null, null, null, true);
+        $collector = new SecurityDataCollector($tokenStorage, $this->getRoleHierarchy(), null, null, null, null);
         $collector->collect(new Request(), new Response());
 
         $this->assertTrue($collector->isEnabled());
@@ -86,7 +86,7 @@ class SecurityDataCollectorTest extends TestCase
         $tokenStorage = new TokenStorage();
         $tokenStorage->setToken(new UsernamePasswordToken(new InMemoryUser('hhamon', 'P4$$w0rD', $roles), 'provider', $roles));
 
-        $collector = new SecurityDataCollector($tokenStorage, $this->getRoleHierarchy(), null, null, null, null, true);
+        $collector = new SecurityDataCollector($tokenStorage, $this->getRoleHierarchy(), null, null, null, null);
         $collector->collect(new Request(), new Response());
         $collector->lateCollect();
 
@@ -109,7 +109,7 @@ class SecurityDataCollectorTest extends TestCase
         $tokenStorage = new TokenStorage();
         $tokenStorage->setToken(new SwitchUserToken(new InMemoryUser('hhamon', 'P4$$w0rD', ['ROLE_USER']), 'provider', ['ROLE_USER'], $adminToken));
 
-        $collector = new SecurityDataCollector($tokenStorage, $this->getRoleHierarchy(), null, null, null, null, true);
+        $collector = new SecurityDataCollector($tokenStorage, $this->getRoleHierarchy(), null, null, null, null);
         $collector->collect(new Request(), new Response());
         $collector->lateCollect();
 
@@ -139,7 +139,7 @@ class SecurityDataCollectorTest extends TestCase
             ->with($request)
             ->willReturn($firewallConfig);
 
-        $collector = new SecurityDataCollector(null, null, null, null, $firewallMap, new TraceableFirewallListener($firewallMap, new EventDispatcher(), new LogoutUrlGenerator()), true);
+        $collector = new SecurityDataCollector(null, null, null, null, $firewallMap, new TraceableFirewallListener($firewallMap, new EventDispatcher(), new LogoutUrlGenerator()));
         $collector->collect($request, new Response());
         $collector->lateCollect();
         $collected = $collector->getFirewall();
@@ -163,7 +163,7 @@ class SecurityDataCollectorTest extends TestCase
         $response = new Response();
 
         // Don't inject any firewall map
-        $collector = new SecurityDataCollector(null, null, null, null, null, null, true);
+        $collector = new SecurityDataCollector(null, null, null, null, null, null);
         $collector->collect($request, $response);
         $this->assertNull($collector->getFirewall());
 
@@ -173,7 +173,7 @@ class SecurityDataCollectorTest extends TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
-        $collector = new SecurityDataCollector(null, null, null, null, $firewallMap, new TraceableFirewallListener($firewallMap, new EventDispatcher(), new LogoutUrlGenerator()), true);
+        $collector = new SecurityDataCollector(null, null, null, null, $firewallMap, new TraceableFirewallListener($firewallMap, new EventDispatcher(), new LogoutUrlGenerator()));
         $collector->collect($request, $response);
         $this->assertNull($collector->getFirewall());
 
@@ -183,7 +183,7 @@ class SecurityDataCollectorTest extends TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
-        $collector = new SecurityDataCollector(null, null, null, null, $firewallMap, new TraceableFirewallListener($firewallMap, new EventDispatcher(), new LogoutUrlGenerator()), true);
+        $collector = new SecurityDataCollector(null, null, null, null, $firewallMap, new TraceableFirewallListener($firewallMap, new EventDispatcher(), new LogoutUrlGenerator()));
         $collector->collect($request, $response);
         $this->assertNull($collector->getFirewall());
     }
@@ -225,7 +225,7 @@ class SecurityDataCollectorTest extends TestCase
         $firewall = new TraceableFirewallListener($firewallMap, new EventDispatcher(), new LogoutUrlGenerator());
         $firewall->onKernelRequest($event);
 
-        $collector = new SecurityDataCollector(null, null, null, null, $firewallMap, $firewall, true);
+        $collector = new SecurityDataCollector(null, null, null, null, $firewallMap, $firewall);
         $collector->collect($request, $response);
 
         $this->assertCount(1, $collector->getListeners());
@@ -272,7 +272,7 @@ class SecurityDataCollectorTest extends TestCase
                 ],
             ]]);
 
-        $dataCollector = new SecurityDataCollector(null, null, null, $accessDecisionManager, null, null, true);
+        $dataCollector = new SecurityDataCollector(null, null, null, $accessDecisionManager, null, null);
 
         $dataCollector->collect(new Request(), new Response());
 
@@ -360,7 +360,7 @@ class SecurityDataCollectorTest extends TestCase
                 ],
             ]);
 
-        $dataCollector = new SecurityDataCollector(null, null, null, $accessDecisionManager, null, null, true);
+        $dataCollector = new SecurityDataCollector(null, null, null, $accessDecisionManager, null, null);
 
         $dataCollector->collect(new Request(), new Response());
 
@@ -432,7 +432,7 @@ class SecurityDataCollectorTest extends TestCase
                 'voterDetails' => [],
             ]]);
 
-        $dataCollector = new SecurityDataCollector(null, null, null, $accessDecisionManager, null, null, true);
+        $dataCollector = new SecurityDataCollector(null, null, null, $accessDecisionManager, null, null);
 
         $dataCollector->collect(new Request(), new Response());
 
