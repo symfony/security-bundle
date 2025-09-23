@@ -99,24 +99,28 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
                     ->thenInvalid('You must set either "discovery" or "key" or "keyset".')
                 ->end()
                 ->beforeNormalization()
-                    ->ifTrue(static fn ($v) => isset($v['algorithm']) && \is_string($v['algorithm']))
+                    ->ifArray()
                     ->then(static function ($v) {
-                        if (isset($v['algorithms'])) {
+                        if (isset($v['algorithms']) && isset($v['algorithm'])) {
                             throw new InvalidConfigurationException('You cannot use both "algorithm" and "algorithms" at the same time.');
                         }
-                        $v['algorithms'] = [$v['algorithm']];
-                        unset($v['algorithm']);
+                        if (\is_string($v['algorithm'] ?? null)) {
+                            $v['algorithms'] = [$v['algorithm']];
+                            unset($v['algorithm']);
+                        }
 
                         return $v;
                     })
                 ->end()
                 ->beforeNormalization()
-                    ->ifTrue(static fn ($v) => isset($v['key']) && \is_string($v['key']))
+                    ->ifArray()
                     ->then(static function ($v) {
-                        if (isset($v['keyset'])) {
+                        if (isset($v['keyset']) && isset($v['key'])) {
                             throw new InvalidConfigurationException('You cannot use both "key" and "keyset" at the same time.');
                         }
-                        $v['keyset'] = \sprintf('{"keys":[%s]}', $v['key']);
+                        if (\is_string($v['key'] ?? null)) {
+                            $v['keyset'] = \sprintf('{"keys":[%s]}', $v['key']);
+                        }
 
                         return $v;
                     })
