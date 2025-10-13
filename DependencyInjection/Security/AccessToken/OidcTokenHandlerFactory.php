@@ -48,16 +48,18 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
 
             // disable JWKSet argument
             $tokenHandlerDefinition->replaceArgument(1, null);
-            $tokenHandlerDefinition->addMethodCall(
-                'enableDiscovery',
-                [
-                    new Reference($config['discovery']['cache']['id']),
-                    (new ChildDefinition('security.access_token_handler.oidc_discovery.http_client'))
-                        ->replaceArgument(0, ['base_uri' => $config['discovery']['base_uri']]),
-                    "$id.oidc_configuration",
-                    "$id.oidc_jwk_set",
-                ]
-            );
+
+            $clients = [];
+            foreach ($config['discovery']['base_uri'] as $uri) {
+                $clients[] = (new ChildDefinition('security.access_token_handler.oidc_discovery.http_client'))
+                    ->replaceArgument(0, ['base_uri' => $uri]);
+            }
+
+            $tokenHandlerDefinition->addMethodCall('enableDiscovery', [
+                new Reference($config['discovery']['cache']['id']),
+                $clients,
+                "$id.oidc_configuration",
+            ]);
 
             return;
         }
@@ -93,7 +95,7 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
             ;
         }
 
-        $firewall = substr($id, strlen('security.access_token_handler.'));
+        $firewall = substr($id, \strlen('security.access_token_handler.'));
         $container->getDefinition('security.access_token_handler.oidc.command.generate')
             ->addMethodCall('addGenerator', [
                 $firewall,
@@ -157,10 +159,11 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
                     ->arrayNode('discovery')
                         ->info('Enable the OIDC discovery.')
                         ->children()
-                            ->scalarNode('base_uri')
+                            ->arrayNode('base_uri')
+                                ->acceptAndWrap(['string'])
                                 ->info('Base URI of the OIDC server.')
                                 ->isRequired()
-                                ->cannotBeEmpty()
+                                ->scalarPrototype()->end()
                             ->end()
                             ->arrayNode('cache')
                                 ->children()
