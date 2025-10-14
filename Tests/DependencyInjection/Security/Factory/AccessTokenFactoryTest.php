@@ -261,7 +261,6 @@ class AccessTokenFactoryTest extends TestCase
     public function testOidcTokenHandlerConfigurationWithDiscovery()
     {
         $container = new ContainerBuilder();
-        $jwkset = '{"keys":[{"kty":"EC","crv":"P-256","x":"FtgMtrsKDboRO-Zo0XC7tDJTATHVmwuf9GK409kkars","y":"rWDE0ERU2SfwGYCo1DWWdgFEbZ0MiAXLRBBOzBgs_jY","d":"4G7bRIiKih0qrFxc0dtvkHUll19tTyctoCR3eIbOrO0"},{"kty":"EC","crv":"P-256","x":"0QEAsI1wGI-dmYatdUZoWSRWggLEpyzopuhwk-YUnA4","y":"KYl-qyZ26HobuYwlQh-r0iHX61thfP82qqEku7i0woo","d":"iA_TV2zvftni_9aFAQwFO_9aypfJFCSpcCyevDvz220"}]}';
         $config = [
             'token_handler' => [
                 'oidc' => [
@@ -299,10 +298,68 @@ class AccessTokenFactoryTest extends TestCase
                 'enableDiscovery',
                 [
                     new Reference('oidc_cache'),
-                    (new ChildDefinition('security.access_token_handler.oidc_discovery.http_client'))
+                    [
+                        (new ChildDefinition('security.access_token_handler.oidc_discovery.http_client'))
                         ->replaceArgument(0, ['base_uri' => 'https://www.example.com/realms/demo/']),
+                    ],
                     'security.access_token_handler.firewall1.oidc_configuration',
-                    'security.access_token_handler.firewall1.oidc_jwk_set',
+                ],
+            ],
+        ];
+        $this->assertEquals($expectedArgs, $container->getDefinition('security.access_token_handler.firewall1')->getArguments());
+        $this->assertEquals($expectedCalls, $container->getDefinition('security.access_token_handler.firewall1')->getMethodCalls());
+    }
+
+    public function testOidcTokenHandlerConfigurationWithMultipleDiscoveryBaseUri()
+    {
+        $container = new ContainerBuilder();
+        $config = [
+            'token_handler' => [
+                'oidc' => [
+                    'discovery' => [
+                        'base_uri' => [
+                            'https://www.example.com/realms/demo/',
+                            'https://www.api.com/realms/api/',
+                        ],
+                        'cache' => [
+                            'id' => 'oidc_cache',
+                        ],
+                    ],
+                    'algorithms' => ['RS256', 'ES256'],
+                    'issuers' => ['https://www.example.com'],
+                    'audience' => 'audience',
+                ],
+            ],
+        ];
+
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $finalizedConfig = $this->processConfig($config, $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
+
+        $this->assertTrue($container->hasDefinition('security.authenticator.access_token.firewall1'));
+        $this->assertTrue($container->hasDefinition('security.access_token_handler.firewall1'));
+
+        $expectedArgs = [
+            'index_0' => (new ChildDefinition('security.access_token_handler.oidc.signature'))
+                ->replaceArgument(0, ['RS256', 'ES256']),
+            'index_1' => null,
+            'index_2' => 'audience',
+            'index_3' => ['https://www.example.com'],
+            'index_4' => 'sub',
+        ];
+        $expectedCalls = [
+            [
+                'enableDiscovery',
+                [
+                    new Reference('oidc_cache'),
+                    [
+                        (new ChildDefinition('security.access_token_handler.oidc_discovery.http_client'))
+                        ->replaceArgument(0, ['base_uri' => 'https://www.example.com/realms/demo/']),
+                        (new ChildDefinition('security.access_token_handler.oidc_discovery.http_client'))
+                            ->replaceArgument(0, ['base_uri' => 'https://www.api.com/realms/api/']),
+                    ],
+                    'security.access_token_handler.firewall1.oidc_configuration',
                 ],
             ],
         ];
