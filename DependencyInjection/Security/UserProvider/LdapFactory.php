@@ -53,7 +53,7 @@ class LdapFactory implements UserProviderFactoryInterface
     {
         $node
             ->children()
-                ->scalarNode('service')->isRequired()->cannotBeEmpty()->defaultValue('ldap')->end()
+                ->scalarNode('service')->isRequired()->cannotBeEmpty()->example('ldap')->end()
                 ->scalarNode('base_dn')->isRequired()->cannotBeEmpty()->end()
                 ->scalarNode('search_dn')->defaultNull()->end()
                 ->scalarNode('search_password')->defaultNull()->end()
