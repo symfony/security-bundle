@@ -236,7 +236,7 @@ class MainConfiguration implements ConfigurationInterface
                         ->beforeNormalization()->ifString()->then(static fn ($v) => $v ? array_map('trim', explode(',', $v)) : [])->end()
                         ->enumPrototype()
                             ->values([
-                                '*', 'cache', 'cookies', 'storage', 'executionContexts',
+                                '*', 'cache', 'cookies', 'storage', 'clientHints', 'executionContexts', 'prefetchCache', 'prerenderCache',
                             ])
                         ->end()
                     ->end()
