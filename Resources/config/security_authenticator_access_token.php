@@ -42,7 +42,6 @@ use Symfony\Component\Security\Http\AccessToken\Oidc\OidcTokenHandler;
 use Symfony\Component\Security\Http\AccessToken\Oidc\OidcUserInfoTokenHandler;
 use Symfony\Component\Security\Http\AccessToken\QueryAccessTokenExtractor;
 use Symfony\Component\Security\Http\Authenticator\AccessTokenAuthenticator;
-use Symfony\Component\Security\Http\Command\OidcTokenGenerateCommand;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 return static function (ContainerConfigurator $container) {

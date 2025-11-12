@@ -32,6 +32,7 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
             ->replaceArgument(2, $config['audience'])
             ->replaceArgument(3, $config['issuers'])
             ->replaceArgument(4, $config['claim'])
+            ->addTag('container.reversible')
         );
 
         if (!ContainerBuilder::willBeAvailable('web-token/jwt-library', Algorithm::class, ['symfony/security-bundle'])) {
