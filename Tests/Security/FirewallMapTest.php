@@ -66,7 +66,7 @@ class FirewallMapTest extends TestCase
         $firewallConfig = new FirewallConfig('main', 'user_checker', null, true, true);
         $firewallContext->expects($this->once())->method('getConfig')->willReturn($firewallConfig);
 
-        $listener = function () {};
+        $listener = static function () {};
         $firewallContext->expects($this->once())->method('getListeners')->willReturn([$listener]);
 
         $exceptionListener = $this->createMock(ExceptionListener::class);

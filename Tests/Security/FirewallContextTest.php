@@ -24,7 +24,7 @@ class FirewallContextTest extends TestCase
         $config = new FirewallConfig('main', 'user_checker', 'request_matcher');
         $exceptionListener = $this->getExceptionListenerMock();
         $logoutListener = $this->getLogoutListenerMock();
-        $listeners = [function () {}];
+        $listeners = [static function () {}];
 
         $context = new FirewallContext($listeners, $exceptionListener, $logoutListener, $config);
 

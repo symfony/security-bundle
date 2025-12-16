@@ -122,8 +122,8 @@ class DebugFirewallCommandTest extends TestCase
         $contexts->method('get')->willReturn($context);
 
         $dispatcher = $this->createMock(EventDispatcherInterface::class);
-        $listener = fn () => null;
-        $listenerTwo = fn (int $number) => $number * 2;
+        $listener = static fn () => null;
+        $listenerTwo = static fn (int $number) => $number * 2;
         $dispatcher->method('getListeners')->willReturn([
             'security.event' => [$listener, $listenerTwo],
         ]);

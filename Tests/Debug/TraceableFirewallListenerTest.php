@@ -94,7 +94,7 @@ class TraceableFirewallListenerTest extends TestCase
             ->expects($this->once())
             ->method('authenticate')
             ->with($request)
-            ->willReturn(new SelfValidatingPassport(new UserBadge('robin', function () {})));
+            ->willReturn(new SelfValidatingPassport(new UserBadge('robin', static function () {})));
         $supportingAuthenticator
             ->expects($this->once())
             ->method('onAuthenticationSuccess')
