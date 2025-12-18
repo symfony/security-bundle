@@ -5,6 +5,7 @@ CHANGELOG
 ---
 
  * Add support for the `clientHints`, `prefetchCache`, and `prerenderCache` `ClearSite-Data` directives
+ * Add support for `#[AsTaggedItem]` attribute to configure voter priority
 
 8.0
 ---
