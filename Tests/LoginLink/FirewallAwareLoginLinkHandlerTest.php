@@ -12,13 +12,14 @@
 namespace Symfony\Bundle\SecurityBundle\Tests\LoginLink;
 
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
 use Symfony\Bundle\SecurityBundle\LoginLink\FirewallAwareLoginLinkHandler;
 use Symfony\Bundle\SecurityBundle\Security\FirewallConfig;
+use Symfony\Bundle\SecurityBundle\Security\FirewallContext;
 use Symfony\Bundle\SecurityBundle\Security\FirewallMap;
+use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Core\User\InMemoryUser;
 use Symfony\Component\Security\Http\LoginLink\LoginLinkDetails;
 use Symfony\Component\Security\Http\LoginLink\LoginLinkHandlerInterface;
 
@@ -26,7 +27,7 @@ class FirewallAwareLoginLinkHandlerTest extends TestCase
 {
     public function testSuccessfulDecoration()
     {
-        $user = $this->createMock(UserInterface::class);
+        $user = new InMemoryUser('John', 'password');
         $linkDetails = new LoginLinkDetails('http://example.com', new \DateTimeImmutable());
         $request = Request::create('http://example.com/verify');
 
@@ -40,9 +41,8 @@ class FirewallAwareLoginLinkHandlerTest extends TestCase
             ->method('consumeLoginLink')
             ->with($request)
             ->willReturn($user);
-        $locator = $this->createLocator([
-            'main_firewall' => $loginLinkHandler,
-        ]);
+        $locator = new Container();
+        $locator->set('main_firewall', $loginLinkHandler);
         $requestStack = new RequestStack();
         $requestStack->push($request);
 
@@ -56,24 +56,11 @@ class FirewallAwareLoginLinkHandlerTest extends TestCase
 
     private function createFirewallMap(string $firewallName)
     {
-        $map = $this->createMock(FirewallMap::class);
-        $map->expects($this->any())
-            ->method('getFirewallConfig')
-            ->willReturn($config = new FirewallConfig($firewallName, 'user_checker'));
+        $context = new FirewallContext([], null, null, new FirewallConfig($firewallName, 'user_checker'));
+        $locator = new Container();
+        $locator->set($firewallName, $context);
+        $map = new FirewallMap($locator, [$firewallName => null]);
 
         return $map;
-    }
-
-    private function createLocator(array $linkers)
-    {
-        $locator = $this->createMock(ContainerInterface::class);
-        $locator->expects($this->any())
-            ->method('has')
-            ->willReturnCallback(fn ($firewallName) => isset($linkers[$firewallName]));
-        $locator->expects($this->any())
-            ->method('get')
-            ->willReturnCallback(fn ($firewallName) => $linkers[$firewallName]);
-
-        return $locator;
     }
 }

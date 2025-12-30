@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticatorManager;
 use Symfony\Component\Security\Http\Authenticator\Debug\TraceableAuthenticatorManagerListener;
@@ -38,8 +38,8 @@ class TraceableFirewallListenerTest extends TestCase
     public function testOnKernelRequestRecordsListeners()
     {
         $request = new Request();
-        $event = new RequestEvent($this->createMock(HttpKernelInterface::class), $request, HttpKernelInterface::MAIN_REQUEST);
-        $event->setResponse($response = new Response());
+        $event = new RequestEvent($this->createStub(HttpKernelInterface::class), $request, HttpKernelInterface::MAIN_REQUEST);
+        $event->setResponse(new Response());
         $listener = function ($e) use ($event, &$listenerCalled) {
             $listenerCalled += $e === $event;
         };
@@ -68,7 +68,7 @@ class TraceableFirewallListenerTest extends TestCase
     {
         $request = new Request();
 
-        $event = new RequestEvent($this->createMock(HttpKernelInterface::class), $request, HttpKernelInterface::MAIN_REQUEST);
+        $event = new RequestEvent($this->createStub(HttpKernelInterface::class), $request, HttpKernelInterface::MAIN_REQUEST);
         $event->setResponse($response = new Response());
 
         $supportingAuthenticator = $this->createMock(DummyAuthenticator::class);
@@ -90,17 +90,16 @@ class TraceableFirewallListenerTest extends TestCase
             ->method('createToken')
             ->willReturn($this->createMock(TokenInterface::class));
 
-        $notSupportingAuthenticator = $this->createMock(DummyAuthenticator::class);
+        $notSupportingAuthenticator = $this->createStub(DummyAuthenticator::class);
         $notSupportingAuthenticator
             ->method('supports')
             ->with($request)
             ->willReturn(false);
 
-        $tokenStorage = $this->createMock(TokenStorageInterface::class);
         $dispatcher = new EventDispatcher();
         $authenticatorManager = new AuthenticatorManager(
             [$notSupportingAuthenticator, $supportingAuthenticator],
-            $tokenStorage,
+            new TokenStorage(),
             $dispatcher,
             'main'
         );
