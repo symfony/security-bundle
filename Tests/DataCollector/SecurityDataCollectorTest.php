@@ -17,6 +17,7 @@ use Symfony\Bundle\SecurityBundle\Debug\TraceableFirewallListener;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\MainConfiguration;
 use Symfony\Bundle\SecurityBundle\Security\FirewallConfig;
 use Symfony\Bundle\SecurityBundle\Security\FirewallMap;
+use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +33,6 @@ use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 use Symfony\Component\Security\Core\Role\RoleHierarchy;
 use Symfony\Component\Security\Core\User\InMemoryUser;
-use Symfony\Component\Security\Http\FirewallMapInterface;
 use Symfony\Component\Security\Http\Logout\LogoutUrlGenerator;
 use Symfony\Component\VarDumper\Caster\ClassStub;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -165,20 +165,14 @@ class SecurityDataCollectorTest extends TestCase
         $this->assertNull($collector->getFirewall());
 
         // Inject an instance that is not context aware
-        $firewallMap = $this
-            ->getMockBuilder(FirewallMapInterface::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $firewallMap = new FirewallMap(new Container(), []);
 
         $collector = new SecurityDataCollector(null, null, null, null, $firewallMap, new TraceableFirewallListener($firewallMap, new EventDispatcher(), new LogoutUrlGenerator()));
         $collector->collect($request, $response);
         $this->assertNull($collector->getFirewall());
 
         // Null config
-        $firewallMap = $this
-            ->getMockBuilder(FirewallMap::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $firewallMap = new FirewallMap(new Container(), []);
 
         $collector = new SecurityDataCollector(null, null, null, null, $firewallMap, new TraceableFirewallListener($firewallMap, new EventDispatcher(), new LogoutUrlGenerator()));
         $collector->collect($request, $response);
@@ -191,7 +185,7 @@ class SecurityDataCollectorTest extends TestCase
     public function testGetListeners()
     {
         $request = new Request();
-        $event = new RequestEvent($this->createMock(HttpKernelInterface::class), $request, HttpKernelInterface::MAIN_REQUEST);
+        $event = new RequestEvent($this->createStub(HttpKernelInterface::class), $request, HttpKernelInterface::MAIN_REQUEST);
         $event->setResponse($response = new Response());
         $listener = function ($e) use ($event, &$listenerCalled) {
             $listenerCalled += $e === $event;
@@ -236,7 +230,7 @@ class SecurityDataCollectorTest extends TestCase
 
         $strategy = MainConfiguration::STRATEGY_AFFIRMATIVE;
 
-        $accessDecisionManager = $this->createMock(TraceableAccessDecisionManager::class);
+        $accessDecisionManager = $this->createStub(TraceableAccessDecisionManager::class);
 
         $accessDecisionManager
             ->method('getStrategy')
@@ -311,7 +305,7 @@ class SecurityDataCollectorTest extends TestCase
 
         $strategy = MainConfiguration::STRATEGY_UNANIMOUS;
 
-        $accessDecisionManager = $this->createMock(TraceableAccessDecisionManager::class);
+        $accessDecisionManager = $this->createStub(TraceableAccessDecisionManager::class);
 
         $accessDecisionManager
             ->method('getStrategy')
@@ -402,7 +396,7 @@ class SecurityDataCollectorTest extends TestCase
     {
         $strategy = MainConfiguration::STRATEGY_AFFIRMATIVE;
 
-        $accessDecisionManager = $this->createMock(TraceableAccessDecisionManager::class);
+        $accessDecisionManager = $this->createStub(TraceableAccessDecisionManager::class);
 
         $accessDecisionManager
             ->method('getStrategy')
