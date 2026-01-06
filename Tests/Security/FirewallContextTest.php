@@ -36,17 +36,11 @@ class FirewallContextTest extends TestCase
 
     private function getExceptionListenerMock()
     {
-        return $this
-            ->getMockBuilder(ExceptionListener::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        return $this->createStub(ExceptionListener::class);
     }
 
     private function getLogoutListenerMock()
     {
-        return $this
-            ->getMockBuilder(LogoutListener::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        return $this->createStub(LogoutListener::class);
     }
 }
