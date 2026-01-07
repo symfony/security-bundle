@@ -39,19 +39,19 @@ class JsonLoginLdapTest extends AbstractWebTestCase
         // Given
         $client = $this->createClient(['test_case' => 'JsonLoginLdap', 'root_config' => 'config.yml', 'debug' => true]);
         $container = $client->getContainer();
-        $connectionMock = $this->createMock(ConnectionInterface::class);
+        $connectionMock = $this->createStub(ConnectionInterface::class);
         $collection = new class([new Entry('', ['uid' => ['spomky']])]) extends \ArrayObject implements CollectionInterface {
             public function toArray(): array
             {
                 return $this->getArrayCopy();
             }
         };
-        $queryMock = $this->createMock(QueryInterface::class);
+        $queryMock = $this->createStub(QueryInterface::class);
         $queryMock
             ->method('execute')
             ->willReturn($collection)
         ;
-        $ldapAdapterMock = $this->createMock(AdapterInterface::class);
+        $ldapAdapterMock = $this->createStub(AdapterInterface::class);
         $ldapAdapterMock
             ->method('getConnection')
             ->willReturn($connectionMock)
