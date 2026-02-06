@@ -102,8 +102,9 @@ class TraceableFirewallListenerTest extends TestCase
             ->method('createToken')
             ->willReturn(new class extends AbstractToken {});
 
-        $notSupportingAuthenticator = $this->createStub(DummyAuthenticator::class);
+        $notSupportingAuthenticator = $this->createMock(DummyAuthenticator::class);
         $notSupportingAuthenticator
+            ->expects($this->once())
             ->method('supports')
             ->with($request)
             ->willReturn(false);
