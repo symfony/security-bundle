@@ -306,6 +306,7 @@
             <xsd:choice minOccurs="0" maxOccurs="1">
                 <xsd:element name="oidc-user-info" type="oidc_user_info" />
                 <xsd:element name="oidc" type="oidc" />
+                <xsd:element name="oauth2" type="xsd:string" />
             </xsd:choice>
         </xsd:sequence>
         <xsd:attribute name="oidc-user-info" type="xsd:string" />
