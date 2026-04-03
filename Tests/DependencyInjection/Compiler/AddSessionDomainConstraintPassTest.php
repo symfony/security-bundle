@@ -20,6 +20,7 @@ use Symfony\Component\DependencyInjection\Alias;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Kernel\ServicesBundle;
 use Symfony\Component\HttpFoundation\Request;
 
 class AddSessionDomainConstraintPassTest extends TestCase
@@ -129,6 +130,7 @@ class AddSessionDomainConstraintPassTest extends TestCase
         $container->setParameter('kernel.charset', 'UTF-8');
         $container->setParameter('kernel.container_class', 'cc');
         $container->setParameter('kernel.debug', true);
+        $container->setParameter('kernel.environment', 'test');
         $container->setParameter('kernel.project_dir', __DIR__);
         $container->setParameter('kernel.secret', __DIR__);
         if (null !== $sessionStorageOptions) {
@@ -143,6 +145,10 @@ class AddSessionDomainConstraintPassTest extends TestCase
                 'router' => ['resource' => 'dummy'],
             ],
         ];
+
+        if (class_exists(ServicesBundle::class)) {
+            new ServicesBundle()->getContainerExtension()->load([], $container);
+        }
 
         $ext = new FrameworkExtension();
         $ext->load($config, $container);
