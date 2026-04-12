@@ -130,7 +130,6 @@ class AddSessionDomainConstraintPassTest extends TestCase
         $container->setParameter('kernel.charset', 'UTF-8');
         $container->setParameter('kernel.container_class', 'cc');
         $container->setParameter('kernel.debug', true);
-        $container->setParameter('kernel.environment', 'test');
         $container->setParameter('kernel.project_dir', __DIR__);
         $container->setParameter('kernel.secret', __DIR__);
         if (null !== $sessionStorageOptions) {
