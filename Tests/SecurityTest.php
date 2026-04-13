@@ -102,7 +102,7 @@ class SecurityTest extends TestCase
         $authorizationChecker->expects($this->once())
             ->method('isGranted')
             ->with('SOME_ATTRIBUTE', 'SOME_SUBJECT', $this->isInstanceOf(AccessDecision::class))
-            ->willReturnCallback(function ($attribute, $subject, $accessDecision) {
+            ->willReturnCallback(static function ($attribute, $subject, $accessDecision) {
                 $accessDecision->isGranted = true;
 
                 return true;
@@ -125,7 +125,7 @@ class SecurityTest extends TestCase
         $userAuthorizationChecker->expects($this->once())
             ->method('isGrantedForUser')
             ->with($user, 'SOME_ATTRIBUTE', 'SOME_SUBJECT', $this->isInstanceOf(AccessDecision::class))
-            ->willReturnCallback(function ($user, $attribute, $subject, $accessDecision) {
+            ->willReturnCallback(static function ($user, $attribute, $subject, $accessDecision) {
                 $accessDecision->isGranted = false;
 
                 return false;
@@ -508,6 +508,6 @@ class SecurityTest extends TestCase
 
     private function createContainer(string $serviceId, object $serviceObject): ContainerInterface
     {
-        return new ServiceLocator([$serviceId => fn () => $serviceObject]);
+        return new ServiceLocator([$serviceId => static fn () => $serviceObject]);
     }
 }
