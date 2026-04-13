@@ -62,7 +62,7 @@ class FirewallMapTest extends TestCase
     public function testGetListeners(Request $request, bool $expectedState)
     {
         $firewallConfig = new FirewallConfig('main', 'user_checker', null, true, true);
-        $listener = function () {};
+        $listener = static function () {};
         $exceptionListener = $this->createStub(ExceptionListener::class);
         $logoutListener = $this->createStub(LogoutListener::class);
         $firewallContext = new FirewallContext([$listener], $exceptionListener, $logoutListener, $firewallConfig);
