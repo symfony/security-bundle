@@ -114,8 +114,8 @@ class DebugFirewallCommandTest extends TestCase
         $contexts->set('security.firewall.map.context.main', $context);
 
         $dispatcher = new EventDispatcher();
-        $listener = fn () => null;
-        $listenerTwo = fn (int $number) => $number * 2;
+        $listener = static fn () => null;
+        $listenerTwo = static fn (int $number) => $number * 2;
         $dispatcher->addListener('security.event', $listener, 42);
         $dispatcher->addListener('security.event', $listenerTwo, 42);
 

@@ -186,7 +186,7 @@ class SecurityDataCollectorTest extends TestCase
         $request = new Request();
         $event = new RequestEvent($this->createStub(HttpKernelInterface::class), $request, HttpKernelInterface::MAIN_REQUEST);
         $event->setResponse($response = new Response());
-        $listener = function ($e) use ($event, &$listenerCalled) {
+        $listener = static function ($e) use ($event, &$listenerCalled) {
             $listenerCalled += $e === $event;
         };
         $firewallMap = $this

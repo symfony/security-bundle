@@ -47,8 +47,8 @@ class CustomAuthenticatorFactory implements AuthenticatorFactoryInterface
         $factoryRootNode
             ->fixXmlConfig('custom_authenticator')
             ->validate()
-                ->ifTrue(fn ($v) => isset($v['custom_authenticators']) && empty($v['custom_authenticators']))
-                ->then(function ($v) {
+                ->ifTrue(static fn ($v) => isset($v['custom_authenticators']) && empty($v['custom_authenticators']))
+                ->then(static function ($v) {
                     unset($v['custom_authenticators']);
 
                     return $v;

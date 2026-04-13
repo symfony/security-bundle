@@ -216,7 +216,7 @@ final class DebugFirewallCommand extends Command
         $io->table(
             ['Classname'],
             array_map(
-                fn ($authenticator) => [$authenticator::class],
+                static fn ($authenticator) => [$authenticator::class],
                 $authenticators
             )
         );

@@ -531,6 +531,6 @@ class SecurityTest extends TestCase
 
     private function createContainer(string $serviceId, object $serviceObject): ContainerInterface
     {
-        return new ServiceLocator([$serviceId => fn () => $serviceObject]);
+        return new ServiceLocator([$serviceId => static fn () => $serviceObject]);
     }
 }

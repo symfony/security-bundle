@@ -63,7 +63,7 @@ class InMemoryFactory implements UserProviderFactoryInterface
                         ->children()
                             ->scalarNode('password')->defaultNull()->end()
                             ->arrayNode('roles')
-                                ->beforeNormalization()->ifString()->then(fn ($v) => preg_split('/\s*,\s*/', $v))->end()
+                                ->beforeNormalization()->ifString()->then(static fn ($v) => preg_split('/\s*,\s*/', $v))->end()
                                 ->prototype('scalar')->end()
                             ->end()
                         ->end()

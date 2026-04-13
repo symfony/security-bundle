@@ -40,7 +40,7 @@ class TraceableFirewallListenerTest extends TestCase
         $request = new Request();
         $event = new RequestEvent($this->createStub(HttpKernelInterface::class), $request, HttpKernelInterface::MAIN_REQUEST);
         $event->setResponse(new Response());
-        $listener = function ($e) use ($event, &$listenerCalled) {
+        $listener = static function ($e) use ($event, &$listenerCalled) {
             $listenerCalled += $e === $event;
         };
         $firewallMap = $this->createMock(FirewallMap::class);
@@ -81,7 +81,7 @@ class TraceableFirewallListenerTest extends TestCase
             ->expects($this->once())
             ->method('authenticate')
             ->with($request)
-            ->willReturn(new SelfValidatingPassport(new UserBadge('robin', function () {})));
+            ->willReturn(new SelfValidatingPassport(new UserBadge('robin', static function () {})));
         $supportingAuthenticator
             ->expects($this->once())
             ->method('onAuthenticationSuccess')
