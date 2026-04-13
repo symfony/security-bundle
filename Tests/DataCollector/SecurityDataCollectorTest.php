@@ -272,9 +272,7 @@ class SecurityDataCollectorTest extends TestCase
 
         $this->assertEquals($actualDecisionLog, $expectedDecisionLog, 'Wrong value returned by getAccessDecisionLog');
 
-        $actualVoterClasses = array_map(static function (ClassStub $classStub): string {
-            return (string) $classStub;
-        }, $dataCollector->getVoters());
+        $actualVoterClasses = array_map(static fn (ClassStub $classStub): string => (string) $classStub, $dataCollector->getVoters());
 
         $expectedVoterClasses = [
             $voter1::class,
@@ -373,9 +371,7 @@ class SecurityDataCollectorTest extends TestCase
 
         $this->assertEquals($actualDecisionLog, $expectedDecisionLog, 'Wrong value returned by getAccessDecisionLog');
 
-        $actualVoterClasses = array_map(static function (ClassStub $classStub): string {
-            return (string) $classStub;
-        }, $dataCollector->getVoters());
+        $actualVoterClasses = array_map(static fn (ClassStub $classStub): string => (string) $classStub, $dataCollector->getVoters());
 
         $expectedVoterClasses = [
             $voter1::class,
