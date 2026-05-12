@@ -4,6 +4,7 @@ imports:
 framework:
   http_method_override: false
   serializer: ~
+  trusted_hosts: ['^localhost$']
 
 security:
   password_hashers:
