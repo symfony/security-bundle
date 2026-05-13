@@ -13,7 +13,7 @@ namespace Symfony\Bundle\SecurityBundle\Tests\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\SecurityExtension;
-use Symfony\Bundle\SecurityBundle\Tests\DependencyInjection\Fixtures\UserProvider\CustomProvider;
+use Symfony\Bundle\SecurityBundle\Tests\DependencyInjection\Fixtures\UserProviderFactory\CustomProviderFactory;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
@@ -30,7 +30,7 @@ class XmlCustomProviderTest extends TestCase
         $container->register('cache.system', \stdClass::class);
 
         $security = new SecurityExtension();
-        $security->addUserProviderFactory(new CustomProvider());
+        $security->addUserProviderFactory(new CustomProviderFactory());
         $container->registerExtension($security);
 
         (new XmlFileLoader($container, new FileLocator(__DIR__.'/Fixtures/xml')))->load($configurationFile);
