@@ -59,7 +59,6 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
                 new Reference($config['discovery']['cache']['id']),
                 $clients,
                 "$id.oidc_configuration",
-                null,
                 $config['discovery']['enforce_key_usage_verification'],
             ]);
 
@@ -146,7 +145,7 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
                                 ->end()
                             ->end()
                             ->booleanNode('enforce_key_usage_verification')
-                                ->info('When enabled, only keys explicitly designated for signature (via "use" or "key_ops") are accepted. When disabled, keys without any usage designation are included.')
+                                ->info('When enabled (default), only keys explicitly designated for signature (via "use":"sig" or a "key_ops" entry containing "sign"/"verify") are accepted. When disabled, keys without any usage designation are also accepted; keys explicitly restricted to encryption are still rejected.')
                                 ->defaultTrue()
                             ->end()
                         ->end()

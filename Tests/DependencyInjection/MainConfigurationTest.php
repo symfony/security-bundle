@@ -268,4 +268,63 @@ class MainConfigurationTest extends TestCase
         yield [['expose_security_errors' => 'account_status'], ExposeSecurityLevel::AccountStatus];
         yield [['expose_security_errors' => 'all'], ExposeSecurityLevel::All];
     }
+
+    public function testClearSiteDataDirectivesAcceptAllSupportedValues()
+    {
+        $directives = ['*', 'cache', 'cookies', 'storage', 'clientHints', 'executionContexts', 'prefetchCache', 'prerenderCache'];
+        $config = array_merge(static::$minimalConfig, [
+            'firewalls' => [
+                'stub' => [
+                    'logout' => [
+                        'clear_site_data' => $directives,
+                    ],
+                ],
+            ],
+        ]);
+
+        $processor = new Processor();
+        $configuration = new MainConfiguration([], []);
+        $processedConfig = $processor->processConfiguration($configuration, [$config]);
+
+        $this->assertSame($directives, $processedConfig['firewalls']['stub']['logout']['clear_site_data']);
+    }
+
+    public function testClearSiteDataDirectivesAcceptStringList()
+    {
+        $config = array_merge(static::$minimalConfig, [
+            'firewalls' => [
+                'stub' => [
+                    'logout' => [
+                        'clear_site_data' => 'clientHints, prefetchCache, prerenderCache',
+                    ],
+                ],
+            ],
+        ]);
+
+        $processor = new Processor();
+        $configuration = new MainConfiguration([], []);
+        $processedConfig = $processor->processConfiguration($configuration, [$config]);
+
+        $this->assertSame(['clientHints', 'prefetchCache', 'prerenderCache'], $processedConfig['firewalls']['stub']['logout']['clear_site_data']);
+    }
+
+    public function testClearSiteDataDirectivesRejectsUnknownValue()
+    {
+        $config = array_merge(static::$minimalConfig, [
+            'firewalls' => [
+                'stub' => [
+                    'logout' => [
+                        'clear_site_data' => ['unknown_directive'],
+                    ],
+                ],
+            ],
+        ]);
+
+        $processor = new Processor();
+        $configuration = new MainConfiguration([], []);
+
+        $this->expectException(InvalidConfigurationException::class);
+
+        $processor->processConfiguration($configuration, [$config]);
+    }
 }
