@@ -107,6 +107,21 @@ class SecurityTest extends AbstractWebTestCase
         $this->assertSame('chalasr', static::getContainer()->get('security.helper')->getUser()->getUserIdentifier());
     }
 
+    public function testLoginBetweenStatefulFirewalls()
+    {
+        $client = $this->createClient(['test_case' => 'SecurityHelper', 'root_config' => 'config.yml']);
+        $client->loginUser(new InMemoryUser('no-role-username', 'the-password'), 'main');
+
+        static::getContainer()->get(ForceLoginController::class)->firewallName = 'second';
+        $client->request('GET', '/main/force-login');
+
+        $client->request('GET', '/second/logged-in');
+        $this->assertSame(['message' => 'Welcome back @chalasr'], json_decode($client->getResponse()->getContent(), true));
+
+        $client->request('GET', '/main/logged-in');
+        $this->assertSame(['message' => 'Welcome back @no-role-username'], json_decode($client->getResponse()->getContent(), true));
+    }
+
     public function testLogout()
     {
         $client = $this->createClient(['test_case' => 'SecurityHelper', 'root_config' => 'config.yml', 'debug' => true]);
@@ -245,6 +260,7 @@ final class UserWithoutEquatable implements UserInterface, PasswordAuthenticated
 class ForceLoginController
 {
     public string $authenticator = 'form_login';
+    public ?string $firewallName = null;
 
     public function __construct(private Security $security)
     {
@@ -253,7 +269,7 @@ class ForceLoginController
     public function welcome()
     {
         $user = new InMemoryUser('chalasr', 'the-password', ['ROLE_FOO']);
-        $this->security->login($user, $this->authenticator);
+        $this->security->login($user, $this->authenticator, $this->firewallName);
 
         return new JsonResponse(['message' => \sprintf('Welcome @%s!', $this->security->getUser()->getUserIdentifier())]);
     }
