@@ -304,7 +304,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
 
         // load firewall map
         $mapDef = $container->getDefinition('security.firewall.map');
-        $map = $authenticationProviders = $contextRefs = $authenticators = [];
+        $map = $authenticationProviders = $contextRefs = $authenticators = $firewallConfigRefs = [];
         foreach ($firewalls as $name => $firewall) {
             if (isset($firewall['user_checker']) && 'security.user_checker' !== $firewall['user_checker']) {
                 $customUserChecker = true;
@@ -336,6 +336,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
 
             $contextRefs[$contextId] = new Reference($contextId);
             $map[$contextId] = $matcher;
+            $firewallConfigRefs[$name] = new Reference($configId);
         }
         $container
             ->getDefinition('security.helper')
@@ -343,6 +344,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
         ;
 
         $container->setAlias('security.firewall.context_locator', (string) ServiceLocatorTagPass::register($container, $contextRefs));
+        $container->setAlias('security.firewall_config_locator', (string) ServiceLocatorTagPass::register($container, $firewallConfigRefs));
 
         $mapDef->replaceArgument(0, new Reference('security.firewall.context_locator'));
         $mapDef->replaceArgument(1, new IteratorArgument($map));

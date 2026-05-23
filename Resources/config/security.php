@@ -95,6 +95,7 @@ return static function (ContainerConfigurator $container) {
                     'security.user_checker_locator' => service('security.user_checker_locator'),
                     'security.firewall.event_dispatcher_locator' => service('security.firewall.event_dispatcher_locator'),
                     'security.csrf.token_manager' => service('security.csrf.token_manager')->ignoreOnInvalid(),
+                    'security.firewall_config_locator' => service('security.firewall_config_locator')->ignoreOnInvalid(),
                 ]),
                 abstract_arg('authenticators'),
             ])
