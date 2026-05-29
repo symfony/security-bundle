@@ -233,6 +233,7 @@ return static function (ContainerConfigurator $container) {
                 service('router')->nullOnInvalid(),
                 service('security.token_storage')->nullOnInvalid(),
             ])
+            ->tag('kernel.reset', ['method' => 'reset', 'on_invalid' => 'ignore'])
 
         ->set('security.route_loader.logout', LogoutRouteLoader::class)
             ->args([
