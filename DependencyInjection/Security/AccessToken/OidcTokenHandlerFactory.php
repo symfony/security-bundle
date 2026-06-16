@@ -31,6 +31,7 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
             ->replaceArgument(2, $config['audience'])
             ->replaceArgument(3, $config['issuers'])
             ->replaceArgument(4, $config['claim'])
+            ->replaceArgument(7, $config['allowed_time_drift'])
             ->addTag('container.reversible')
         );
 
@@ -189,6 +190,11 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
                                 ->isRequired()
                             ->end()
                         ->end()
+                    ->end()
+                    ->integerNode('allowed_time_drift')
+                        ->info('Allowed time drift in seconds for token validation (iat, nbf, exp claims).')
+                        ->defaultValue(0)
+                        ->min(0)
                     ->end()
                 ->end()
             ->end()

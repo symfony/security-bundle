@@ -175,6 +175,7 @@ class AccessTokenFactoryTest extends TestCase
             'index_2' => 'audience',
             'index_3' => ['https://www.example.com'],
             'index_4' => 'sub',
+            'index_7' => 0,
         ];
         $this->assertEquals($expected, $container->getDefinition('security.access_token_handler.firewall1')->getArguments());
     }
@@ -295,6 +296,7 @@ class AccessTokenFactoryTest extends TestCase
             'index_2' => 'audience',
             'index_3' => ['https://www.example.com'],
             'index_4' => 'sub',
+            'index_7' => 0,
         ];
         $expectedCalls = [
             [
@@ -351,6 +353,7 @@ class AccessTokenFactoryTest extends TestCase
             'index_2' => 'audience',
             'index_3' => ['https://www.example.com'],
             'index_4' => 'sub',
+            'index_7' => 0,
         ];
         $expectedCalls = [
             [
@@ -676,5 +679,39 @@ class AccessTokenFactoryTest extends TestCase
         $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
 
         $this->assertFalse($container->hasDefinition('security.access_token_handler.oidc.command.generate'));
+    }
+
+    public function testOidcTokenHandlerConfigurationWithAllowedTimeDrift()
+    {
+        $container = new ContainerBuilder();
+        $jwkset = '{"keys":[{"kty":"EC","crv":"P-256","x":"FtgMtrsKDboRO-Zo0XC7tDJTATHVmwuf9GK409kkars","y":"rWDE0ERU2SfwGYCo1DWWdgFEbZ0MiAXLRBBOzBgs_jY","d":"4G7bRIiKih0qrFxc0dtvkHUll19tTyctoCR3eIbOrO0"},{"kty":"EC","crv":"P-256","x":"0QEAsI1wGI-dmYatdUZoWSRWggLEpyzopuhwk-YUnA4","y":"KYl-qyZ26HobuYwlQh-r0iHX61thfP82qqEku7i0woo","d":"iA_TV2zvftni_9aFAQwFO_9aypfJFCSpcCyevDvz220"}]}';
+        $config = [
+            'token_handler' => [
+                'oidc' => [
+                    'algorithms' => ['RS256', 'ES256'],
+                    'issuers' => ['https://www.example.com'],
+                    'audience' => 'audience',
+                    'keyset' => $jwkset,
+                    'allowed_time_drift' => 5,
+                ],
+            ],
+        ];
+
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $finalizedConfig = $this->processConfig($config, $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
+
+        $expected = [
+            'index_0' => (new ChildDefinition('security.access_token_handler.oidc.signature'))
+                ->replaceArgument(0, ['RS256', 'ES256']),
+            'index_1' => (new ChildDefinition('security.access_token_handler.oidc.jwkset'))
+                ->replaceArgument(0, $jwkset),
+            'index_2' => 'audience',
+            'index_3' => ['https://www.example.com'],
+            'index_4' => 'sub',
+            'index_7' => 5,
+        ];
+        $this->assertEquals($expected, $container->getDefinition('security.access_token_handler.firewall1')->getArguments());
     }
 }

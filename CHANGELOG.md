@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+8.2
+---
+
+ * Add `allowed_time_drift` option to the OIDC token handler configuration
+
 8.1
 ---
 
