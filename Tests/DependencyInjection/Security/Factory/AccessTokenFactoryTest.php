@@ -603,6 +603,81 @@ class AccessTokenFactoryTest extends TestCase
 
         $this->assertTrue($container->hasDefinition('security.authenticator.access_token.firewall1'));
         $this->assertTrue($container->hasDefinition('security.access_token_handler.firewall1'));
+
+        $this->assertEquals([
+            'index_2' => [],
+            'index_3' => null,
+            'index_4' => null,
+            'index_6' => 0,
+        ], $container->getDefinition('security.access_token_handler.firewall1')->getArguments());
+    }
+
+    public function testOAuth2TokenHandlerConfigurationWithAScopedClient()
+    {
+        $container = new ContainerBuilder();
+        $config = [
+            'token_handler' => [
+                'oauth2' => [
+                    'http_client' => 'oauth2.introspection',
+                    'audience' => 'https://api.example.com',
+                    'issuer' => 'https://www.example.com',
+                    'claim' => 'username',
+                    'allowed_time_drift' => 5,
+                    'cache' => ['id' => 'oauth2_cache'],
+                ],
+            ],
+        ];
+
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $finalizedConfig = $this->processConfig($config, $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
+
+        $definition = $container->getDefinition('security.access_token_handler.firewall1');
+        $this->assertEquals([
+            'index_0' => new Reference('oauth2.introspection'),
+            'index_2' => ['https://api.example.com'],
+            'index_3' => 'https://www.example.com',
+            'index_4' => 'username',
+            'index_6' => 5,
+        ], $definition->getArguments());
+        $this->assertEquals([
+            ['enableCache', [new Reference('oauth2_cache'), 'security.access_token_handler.firewall1.introspection.', 60]],
+        ], $definition->getMethodCalls());
+    }
+
+    public function testOAuth2TokenHandlerConfigurationWithSeveralAudiences()
+    {
+        $container = new ContainerBuilder();
+        $config = [
+            'token_handler' => [
+                'oauth2' => [
+                    'audience' => ['https://api.example.com', 'https://admin.example.com'],
+                ],
+            ],
+        ];
+
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $finalizedConfig = $this->processConfig($config, $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
+
+        $this->assertSame(['https://api.example.com', 'https://admin.example.com'], $container->getDefinition('security.access_token_handler.firewall1')->getArgument(2));
+    }
+
+    public function testOAuth2TokenHandlerConfigurationWithAClientAsAString()
+    {
+        $container = new ContainerBuilder();
+        $config = [
+            'token_handler' => ['oauth2' => 'oauth2.introspection'],
+        ];
+
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $finalizedConfig = $this->processConfig($config, $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
+
+        $this->assertEquals(new Reference('oauth2.introspection'), $container->getDefinition('security.access_token_handler.firewall1')->getArgument(0));
     }
 
     public function testNoTokenHandlerSet()

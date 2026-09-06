@@ -22,6 +22,7 @@ use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\Serializer\CompactSerializer as JwsCompactSerializer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
+use Symfony\Bundle\SecurityBundle\Tests\Functional\Bundle\AccessTokenBundle\Security\Handler\IntrospectionResponseFactory;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
@@ -531,6 +532,53 @@ class AccessTokenTest extends AbstractWebTestCase
             'username' => 'dunglas',
         ]);
         $client->request('GET', '/foo', [], [], ['HTTP_AUTHORIZATION' => \sprintf('Bearer %s', $token)]);
+        $response = $client->getResponse();
+
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertSame('Bearer realm="My API",error="invalid_token",error_description="Invalid credentials."', $response->headers->get('WWW-Authenticate'));
+    }
+
+    public function testOAuth2IntrospectionSuccess()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_oauth2.yml']);
+        $endpoint = $client->getContainer()->get(IntrospectionResponseFactory::class);
+
+        $client->request('GET', '/foo', [], [], ['HTTP_AUTHORIZATION' => 'Bearer VALID_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(['message' => 'Welcome @dunglas!'], json_decode($response->getContent(), true));
+
+        ['method' => $method, 'url' => $url, 'options' => $options] = $endpoint->requests[0];
+        $this->assertSame('POST', $method);
+        $this->assertSame('https://authorization-server.example.com/token/introspect', $url);
+        $this->assertSame(['Authorization: Basic '.base64_encode('client:password')], $options['normalized_headers']['authorization']);
+        $this->assertSame('token=VALID_ACCESS_TOKEN&token_type_hint=access_token', $options['body']);
+    }
+
+    public function testOAuth2IntrospectionFailureOnAnInactiveToken()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_oauth2.yml']);
+
+        $client->request('GET', '/foo', [], [], ['HTTP_AUTHORIZATION' => 'Bearer INVALID_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertSame('Bearer realm="My API",error="invalid_token",error_description="Invalid credentials."', $response->headers->get('WWW-Authenticate'));
+    }
+
+    /**
+     * The "issuer" the firewall declares reaches the handler, so a token the authorization server
+     * reports as active but attributes to another issuer is still refused.
+     */
+    public function testOAuth2IntrospectionFailureOnAForeignIssuer()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_oauth2.yml']);
+
+        $client->request('GET', '/foo', [], [], ['HTTP_AUTHORIZATION' => 'Bearer FOREIGN_ISSUER_ACCESS_TOKEN']);
         $response = $client->getResponse();
 
         $this->assertInstanceOf(Response::class, $response);

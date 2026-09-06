@@ -5,10 +5,10 @@ framework:
     serializer: ~
     http_client:
         scoped_clients:
-            oauth2.client:
-                scope: 'https://authorization-server\.example\.com'
-                headers:
-                    Authorization: 'Basic Y2xpZW50OnBhc3N3b3Jk'
+            oauth2.introspection:
+                base_uri: 'https://authorization-server.example.com/token/introspect'
+                auth_basic: 'client:password'
+                mock_response_factory: Symfony\Bundle\SecurityBundle\Tests\Functional\Bundle\AccessTokenBundle\Security\Handler\IntrospectionResponseFactory
 
 security:
     password_hashers:
@@ -25,9 +25,18 @@ security:
             pattern: ^/
             access_token:
                 token_handler:
-                    oauth2: ~
+                    oauth2:
+                        http_client: 'oauth2.introspection'
+                        issuer: 'https://authorization-server.example.com/'
+                        audience: 'https://protected.example.net/resource'
                 token_extractors: 'header'
                 realm: 'My API'
 
     access_control:
         - { path: ^/foo, roles: ROLE_USER }
+
+services:
+    _defaults:
+        public: true
+
+    Symfony\Bundle\SecurityBundle\Tests\Functional\Bundle\AccessTokenBundle\Security\Handler\IntrospectionResponseFactory: ~

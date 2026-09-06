@@ -237,6 +237,11 @@ return static function (ContainerConfigurator $container) {
             ->args([
                 service('http_client'),
                 service('logger')->nullOnInvalid(),
+                abstract_arg('audiences'),
+                abstract_arg('issuer'),
+                abstract_arg('claim'),
+                service('clock'),
+                abstract_arg('allowed time drift'),
             ])
 
         ->set('security.access_token_handler.oidc.generator', OidcTokenGenerator::class)
