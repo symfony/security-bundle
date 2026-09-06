@@ -1,0 +1,33 @@
+imports:
+    - { resource: ./../config/framework.yml }
+
+framework:
+    serializer: ~
+
+security:
+    password_hashers:
+        Symfony\Component\Security\Core\User\InMemoryUser: plaintext
+
+    providers:
+        in_memory:
+            memory:
+                users:
+                    dunglas: { password: foo, roles: [ROLE_USER] }
+
+    firewalls:
+        main:
+            pattern: ^/
+            access_token:
+                token_handler: access_token.access_token_handler
+                token_extractors: 'header'
+                realm: 'My API'
+
+    access_control:
+        - { path: ^/foo, roles: 'OAUTH2_SCOPE(openid profile:read)' }
+        - { path: ^/bar, roles: ROLE_ADMIN }
+
+services:
+    access_token.access_token_handler:
+        class: Symfony\Bundle\SecurityBundle\Tests\Functional\Bundle\AccessTokenBundle\Security\Handler\AccessTokenHandler
+    security.access.denied_handler:
+        class: Symfony\Bundle\SecurityBundle\Tests\Functional\Bundle\AccessTokenBundle\Security\AppAccessDeniedHandler

@@ -44,6 +44,8 @@ use Symfony\Component\Security\Http\AccessToken\Oidc\OidcTokenHandler;
 use Symfony\Component\Security\Http\AccessToken\Oidc\OidcUserInfoTokenHandler;
 use Symfony\Component\Security\Http\AccessToken\QueryAccessTokenExtractor;
 use Symfony\Component\Security\Http\Authenticator\AccessTokenAuthenticator;
+use Symfony\Component\Security\Http\Authorization\InsufficientScopeAccessDeniedHandler;
+use Symfony\Component\Security\Http\Authorization\OAuth2ScopeVoter;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 return static function (ContainerConfigurator $container) {
@@ -82,6 +84,17 @@ return static function (ContainerConfigurator $container) {
                 'security.access_token.resource_metadata_paths',
             ])
             ->tag('routing.route_loader')
+
+        ->set('security.access.oauth2_scope_voter', OAuth2ScopeVoter::class)
+            ->tag('security.voter', ['priority' => 245])
+
+        ->set('security.access_token.access_denied_handler', InsufficientScopeAccessDeniedHandler::class)
+            ->abstract()
+            ->args([
+                abstract_arg('realm'),
+                service('security.access.denied_handler')->nullOnInvalid(),
+                abstract_arg('resource metadata uri'),
+            ])
 
         ->set('security.authenticator.access_token.chain_extractor', ChainAccessTokenExtractor::class)
             ->abstract()

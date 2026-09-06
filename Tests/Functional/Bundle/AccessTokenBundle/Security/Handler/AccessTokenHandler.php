@@ -23,6 +23,7 @@ class AccessTokenHandler implements AccessTokenHandlerInterface
         return match ($accessToken) {
             'VALID_ACCESS_TOKEN' => new UserBadge('dunglas'),
             'SELF_CONTAINED_ACCESS_TOKEN' => new UserBadge('dunglas', static fn () => new InMemoryUser('dunglas', null, ['ROLE_USER'])),
+            'SCOPED_ACCESS_TOKEN' => new UserBadge('dunglas', static fn () => new InMemoryUser('dunglas', null, ['ROLE_USER']), ['scope' => 'openid profile:read']),
             default => throw new BadCredentialsException('Invalid credentials.'),
         };
     }

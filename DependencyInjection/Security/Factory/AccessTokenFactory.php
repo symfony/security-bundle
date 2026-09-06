@@ -194,10 +194,25 @@ final class AccessTokenFactory extends AbstractFactory implements StatelessAuthe
             ->replaceArgument(3, $successHandler)
             ->replaceArgument(4, $failureHandler)
             ->replaceArgument(5, $config['realm'])
-            ->replaceArgument(6, isset($config['resource_metadata']) ? $this->createResourceMetadata($container, $firewallName, $config['resource_metadata'], $config['token_extractors']) : null)
+            ->replaceArgument(6, $resourceMetadataUri = isset($config['resource_metadata']) ? $this->createResourceMetadata($container, $firewallName, $config['resource_metadata'], $config['token_extractors']) : null)
         ;
 
+        $this->createFallbackAccessDeniedHandler($container, $firewallName, $config['realm'], $resourceMetadataUri);
+
         return $authenticatorId;
+    }
+
+    /**
+     * Registers the access denied handler the firewall falls back on, unless it configures one of its own,
+     * so that a denial caused by a missing scope gets the RFC 6750 §3.1 "insufficient_scope" challenge.
+     */
+    private function createFallbackAccessDeniedHandler(ContainerBuilder $container, string $firewallName, ?string $realm, ?string $resourceMetadataUri): void
+    {
+        $container
+            ->setDefinition(\sprintf('security.fallback_access_denied_handler.%s', $firewallName), new ChildDefinition('security.access_token.access_denied_handler'))
+            ->replaceArgument(0, $realm)
+            ->replaceArgument(2, $resourceMetadataUri)
+        ;
     }
 
     /**

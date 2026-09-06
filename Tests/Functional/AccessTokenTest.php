@@ -85,6 +85,106 @@ class AccessTokenTest extends AbstractWebTestCase
         $this->assertSame(404, $client->getResponse()->getStatusCode());
     }
 
+    public function testAccessControlGrantedOnTheScopesTheTokenCarries()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_scope.yml']);
+        $client->request('GET', '/foo', [], [], ['HTTP_AUTHORIZATION' => 'Bearer SCOPED_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(['message' => 'Welcome @dunglas!'], json_decode($response->getContent(), true));
+    }
+
+    /**
+     * RFC 9728 §5.1 does not restrict "resource_metadata" to a 401, and a client denied for a missing
+     * scope holds a token from an authorization server it may have to find again.
+     */
+    public function testTheInsufficientScopeChallengeAdvertisesTheResourceMetadata()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_scope_metadata.yml']);
+        $client->request('GET', '/foo', [], [], ['HTTP_AUTHORIZATION' => 'Bearer VALID_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertSame('Bearer realm="My API",error="insufficient_scope",error_description="The request requires higher privileges than provided by the access token.",scope="openid profile:read",resource_metadata="http://localhost/.well-known/oauth-protected-resource"', $response->headers->get('WWW-Authenticate'));
+    }
+
+    public function testAccessControlDeniedOnAMissingScope()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_scope.yml']);
+        $client->request('GET', '/foo', [], [], ['HTTP_AUTHORIZATION' => 'Bearer VALID_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertSame('Bearer realm="My API",error="insufficient_scope",error_description="The request requires higher privileges than provided by the access token.",scope="openid profile:read"', $response->headers->get('WWW-Authenticate'));
+    }
+
+    /**
+     * The scope challenge stands in only for the denials no handler of the application already
+     * answers, so an application-wide access denied URL keeps being rendered.
+     */
+    public function testTheApplicationWideAccessDeniedUrlStillApplies()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_scope_denied_url.yml']);
+        $client->request('GET', '/foo', [], [], ['HTTP_AUTHORIZATION' => 'Bearer VALID_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertSame(['message' => 'Welcome anonymous!'], json_decode($response->getContent(), true));
+        $this->assertFalse($response->headers->has('WWW-Authenticate'));
+    }
+
+    /**
+     * A denial no scope took part in is handed back to the handler the application registered,
+     * while a denial on a scope still gets the RFC 6750 challenge.
+     */
+    public function testTheApplicationWideAccessDeniedHandlerStillAnswersTheDenialsItUsedTo()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_scope_app_handler.yml']);
+
+        $client->request('GET', '/bar', [], [], ['HTTP_AUTHORIZATION' => 'Bearer VALID_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertSame(['message' => 'Denied by the application.'], json_decode($response->getContent(), true));
+        $this->assertFalse($response->headers->has('WWW-Authenticate'));
+
+        $client->request('GET', '/foo', [], [], ['HTTP_AUTHORIZATION' => 'Bearer VALID_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertSame('Bearer realm="My API",error="insufficient_scope",error_description="The request requires higher privileges than provided by the access token.",scope="openid profile:read"', $response->headers->get('WWW-Authenticate'));
+    }
+
+    public function testIsGrantedDeniedOnAMissingScope()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_scope.yml']);
+        $client->request('GET', '/scoped', [], [], ['HTTP_AUTHORIZATION' => 'Bearer SCOPED_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertSame('Bearer realm="My API",error="insufficient_scope",error_description="The request requires higher privileges than provided by the access token.",scope="profile:write"', $response->headers->get('WWW-Authenticate'));
+    }
+
+    public function testIsGrantedDeniedOnOneOfTheScopesAnAttributeRequires()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_scope.yml']);
+        $client->request('GET', '/all-scopes', [], [], ['HTTP_AUTHORIZATION' => 'Bearer SCOPED_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertSame('Bearer realm="My API",error="insufficient_scope",error_description="The request requires higher privileges than provided by the access token.",scope="openid profile:write"', $response->headers->get('WWW-Authenticate'));
+    }
+
+    public function testADenialNoScopeTookPartInKeepsThePlainForbiddenResponse()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_scope.yml']);
+        $client->request('GET', '/bar', [], [], ['HTTP_AUTHORIZATION' => 'Bearer VALID_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertFalse($response->headers->has('WWW-Authenticate'));
+    }
+
     public function testAnonymousAccessIsGranted()
     {
         $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_anonymous.yml']);

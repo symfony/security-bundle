@@ -904,6 +904,13 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
         return 'security.user.provider.concrete.'.strtolower($name);
     }
 
+    /**
+     * When neither the firewall nor the application configures an access denied handler or an access denied URL,
+     * the listener falls back on the "security.fallback_access_denied_handler.<firewall>" handler an authenticator
+     * factory of that firewall may have registered, as AccessTokenFactory does to answer the RFC 6750 §3.1
+     * challenge. That handler hands back every denial no scope took part in, so an application-wide handler keeps
+     * answering those, and an application-wide URL keeps being rendered.
+     */
     private function createExceptionListener(ContainerBuilder $container, array $config, string $id, ?string $defaultEntryPoint, bool $stateless): string
     {
         $exceptionListenerId = 'security.exception_listener.'.$id;
@@ -917,6 +924,10 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
             $listener->replaceArgument(6, new Reference($config['access_denied_handler']));
         } elseif (isset($config['access_denied_url'])) {
             $listener->replaceArgument(5, $config['access_denied_url']);
+        } elseif (!$container->getParameter('security.access.denied_url')
+            && $container->hasDefinition($fallbackHandlerId = 'security.fallback_access_denied_handler.'.$id)
+        ) {
+            $listener->replaceArgument(6, new Reference($fallbackHandlerId));
         }
 
         return $exceptionListenerId;

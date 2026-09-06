@@ -7,3 +7,9 @@ bar_route:
 _security_protected_resource_metadata:
     resource: security.authenticator.access_token.route_loader
     type: service
+scoped_route:
+    path: /scoped
+    defaults: { _controller: Symfony\Bundle\SecurityBundle\Tests\Functional\Bundle\AccessTokenBundle\Controller\ScopedController::__invoke }
+all_scopes_route:
+    path: /all-scopes
+    defaults: { _controller: Symfony\Bundle\SecurityBundle\Tests\Functional\Bundle\AccessTokenBundle\Controller\AllScopesController::__invoke }

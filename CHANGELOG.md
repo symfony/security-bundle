@@ -7,6 +7,7 @@ CHANGELOG
  * Add the `security.expression_language_provider` service to evaluate the security functions outside of authorization expressions
  * Add the `debug:roles` command to inspect the role hierarchy
  * Add `allowed_time_drift` option to the OIDC token handler configuration
+ * Require OAuth2 scopes of the access token with an `OAUTH2_SCOPE(...)` attribute, and answer a denial with the RFC 6750 §3.1 `insufficient_scope` challenge
  * Allow disabling the redirection on successful logout by passing `null` to the `target` option
  * Deprecate the `remember_me` option of the `form_login`, `json_login`, `login_link`, and `access_token` authenticators, as it has no effect
  * Add the `ldap_users_only` option to the LDAP authenticators, to bind only `LdapUser` instances against the LDAP server
