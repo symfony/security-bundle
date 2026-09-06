@@ -48,6 +48,7 @@ use Symfony\Component\Security\Http\Authenticator\HttpBasicAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Oidc\OidcPublicClient;
 use Symfony\Component\Security\Http\Authenticator\Oidc\OidcSignatureVerifier;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
+use Symfony\Component\Security\Http\EntryPoint\FallbackAuthenticationEntryPointInterface;
 
 class SecurityExtensionTest extends TestCase
 {
@@ -1148,6 +1149,38 @@ class SecurityExtensionTest extends TestCase
         $this->assertTrue(true, 'extension throws an InvalidConfigurationException if there is one more more empty access control items');
     }
 
+    #[DataProvider('provideAccessTokenEntryPointFirewalls')]
+    public function testAccessTokenIsAFallbackEntryPoint(array $firewall, string $expectedEntryPoint)
+    {
+        $container = $this->getRawContainer();
+        $container->register('token_handler', \stdClass::class);
+        $container->loadFromExtension('security', [
+            'providers' => [
+                'default' => ['id' => 'foo'],
+            ],
+            'firewalls' => [
+                'main' => $firewall + ['access_token' => ['token_handler' => 'token_handler']],
+            ],
+        ]);
+
+        $container->compile();
+
+        $this->assertSame($expectedEntryPoint, $container->getDefinition('security.firewall.map.config.main')->getArgument(7));
+    }
+
+    public static function provideAccessTokenEntryPointFirewalls(): iterable
+    {
+        // the only entry point of the firewall, so a request carrying no token gets the
+        // RFC 6750 challenge instead of a bare 401
+        yield 'alone' => [[], 'security.authenticator.access_token.main'];
+        // an entry point that starts an actual authentication always wins, so that giving
+        // one to the access token authenticator never changes what an existing firewall does
+        yield 'next to http_basic' => [['http_basic' => true], 'security.authenticator.http_basic.main'];
+        yield 'next to form_login' => [['form_login' => true], 'security.authenticator.form_login.main'];
+        // and it can still be asked for explicitly
+        yield 'explicitly configured' => [['http_basic' => true, 'entry_point' => 'access_token'], 'security.authenticator.access_token.main'];
+    }
+
     public static function provideEntryPointFirewalls(): iterable
     {
         // only one entry point available
@@ -1169,6 +1202,8 @@ class SecurityExtensionTest extends TestCase
     public function testEntryPointRequired(array $firewall, string $messageRegex)
     {
         $container = $this->getRawContainer();
+        $container->register('first_fallback_entry_point', TestFallbackEntryPointAuthenticator::class);
+        $container->register('second_fallback_entry_point', TestFallbackEntryPointAuthenticator::class);
         $container->loadFromExtension('security', [
             'providers' => [
                 'first' => ['id' => 'users'],
@@ -1191,6 +1226,13 @@ class SecurityExtensionTest extends TestCase
         yield [
             ['http_basic' => true, 'form_login' => true],
             '/Because you have multiple authenticators in firewall "main", you need to set the "entry_point" key to one of your authenticators \("form_login", "http_basic"\) or a service ID implementing/',
+        ];
+
+        // a fallback entry point stands in only for a firewall declaring no other one, so two of
+        // them leave the firewall as ambiguous as two entry points that start an authentication
+        yield [
+            ['custom_authenticators' => ['first_fallback_entry_point', 'second_fallback_entry_point']],
+            '/Because you have multiple authenticators in firewall "main", you need to set the "entry_point" key to one of your authenticators \("first_fallback_entry_point", "second_fallback_entry_point"\) or a service ID implementing/',
         ];
     }
 
@@ -1652,6 +1694,14 @@ class TestAuthenticator implements AuthenticatorInterface
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
+    }
+}
+
+class TestFallbackEntryPointAuthenticator extends TestAuthenticator implements FallbackAuthenticationEntryPointInterface
+{
+    public function start(Request $request, ?AuthenticationException $authException = null): Response
+    {
+        return new Response('', 401);
     }
 }
 
