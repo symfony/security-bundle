@@ -26,6 +26,8 @@ CHANGELOG
  * Add `enable_end_session` and `post_logout_redirect_path` options to the `oidc_login` authenticator for RP-Initiated Logout
  * Allow passing a null user to `Security::isGrantedForUser()` and `Security::getAccessDecisionForUser()` to check guest permissions
  * Show why an authenticator did not support the request in the security profiler panel
+ * Add the `enforce_at_jwt_type` option to the OIDC token handler configuration to reject the tokens whose `typ` header is not the `at+jwt` RFC 9068 requires from an access token
+ * Deprecate not setting the `enforce_at_jwt_type` option of the OIDC token handler, which defaults to `false` in 8.2 and will default to `true` in 9.0
 
 8.1
 ---

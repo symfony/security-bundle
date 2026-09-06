@@ -466,10 +466,12 @@ class AccessTokenTest extends AbstractWebTestCase
             [static fn () => self::createJws([...$claims, 'username' => 'Invalid Username'])],
             [static fn () => self::createJwe(self::createJws($claims), ['exp' => $time - 3600])],
             [static fn () => self::createJwe(self::createJws($claims), ['cty' => 'x-specific'])],
+            [static fn () => self::createJws($claims, ['typ' => 'JWT'])],
+            [static fn () => self::createJws($claims, [])],
         ];
     }
 
-    private static function createJws(array $claims, array $header = []): string
+    private static function createJws(array $claims, array $header = ['typ' => 'at+jwt']): string
     {
         return (new JwsCompactSerializer())->serialize((new JWSBuilder(new AlgorithmManager([
             new ES256(),

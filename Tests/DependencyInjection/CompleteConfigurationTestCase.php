@@ -740,6 +740,7 @@ abstract class CompleteConfigurationTestCase extends TestCase
         $this->assertSame('audience', $def->getArgument(2));
         $this->assertSame(['https://www.example.com'], $def->getArgument(3));
         $this->assertSame('sub', $def->getArgument(4));
+        $this->assertTrue($def->getArgument(8));
     }
 
     public function testAccessTokenOidcWithEncryption()

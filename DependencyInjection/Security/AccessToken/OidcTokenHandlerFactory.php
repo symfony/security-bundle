@@ -27,11 +27,18 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
 {
     public function create(ContainerBuilder $container, string $id, array|string $config): void
     {
+        if (null === $config['enforce_at_jwt_type']) {
+            trigger_deprecation('symfony/security-bundle', '8.2', 'Not setting the "enforce_at_jwt_type" option of the "oidc" token handler is deprecated, set it explicitly; it will default to true in 9.0.');
+
+            $config['enforce_at_jwt_type'] = false;
+        }
+
         $tokenHandlerDefinition = $container->setDefinition($id, (new ChildDefinition('security.access_token_handler.oidc'))
             ->replaceArgument(2, $config['audience'])
             ->replaceArgument(3, $config['issuers'])
             ->replaceArgument(4, $config['claim'])
             ->replaceArgument(7, $config['allowed_time_drift'])
+            ->replaceArgument(8, $config['enforce_at_jwt_type'])
             ->addTag('container.reversible')
         );
 
@@ -197,6 +204,10 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
                         ->info('Allowed time drift in seconds for token validation (iat, nbf, exp claims).')
                         ->defaultValue(0)
                         ->min(0)
+                    ->end()
+                    ->booleanNode('enforce_at_jwt_type')
+                        ->info('When enabled, the "typ" header of the token must be "at+jwt" or "application/at+jwt", as RFC 9068 requires from a JWT access token. This rejects the ID tokens issued for the same audience. Disable it only for providers that do not follow the profile. Defaults to false in 8.2 and to true as of 9.0.')
+                        ->defaultNull()
                     ->end()
                 ->end()
             ->end()

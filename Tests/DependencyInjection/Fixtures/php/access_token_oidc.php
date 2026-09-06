@@ -16,6 +16,7 @@ $container->loadFromExtension('security', [
                         'issuers' => ['https://www.example.com'],
                         'audience' => 'audience',
                         'keyset' => '{"keys":[{"kty":"RSA","n":"abc","e":"AQAB"}]}',
+                        'enforce_at_jwt_type' => true,
                     ],
                 ],
             ],

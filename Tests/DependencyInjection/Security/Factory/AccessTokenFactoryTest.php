@@ -13,6 +13,8 @@ namespace Symfony\Bundle\SecurityBundle\Tests\DependencyInjection\Security\Facto
 
 use Jose\Component\Core\AlgorithmManager;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\AccessToken\CasTokenHandlerFactory;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\AccessToken\OAuth2TokenHandlerFactory;
@@ -151,6 +153,7 @@ class AccessTokenFactoryTest extends TestCase
         $config = [
             'token_handler' => [
                 'oidc' => [
+                    'enforce_at_jwt_type' => false,
                     'algorithms' => ['RS256', 'ES256'],
                     'issuers' => ['https://www.example.com'],
                     'audience' => 'audience',
@@ -176,6 +179,7 @@ class AccessTokenFactoryTest extends TestCase
             'index_3' => ['https://www.example.com'],
             'index_4' => 'sub',
             'index_7' => 0,
+            'index_8' => false,
         ];
         $this->assertEquals($expected, $container->getDefinition('security.access_token_handler.firewall1')->getArguments());
 
@@ -191,6 +195,7 @@ class AccessTokenFactoryTest extends TestCase
         $config = [
             'token_handler' => [
                 'oidc' => [
+                    'enforce_at_jwt_type' => false,
                     'algorithms' => ['RS256', 'ES256'],
                     'issuers' => ['https://www.example.com'],
                     'audience' => 'audience',
@@ -272,6 +277,7 @@ class AccessTokenFactoryTest extends TestCase
         $config = [
             'token_handler' => [
                 'oidc' => [
+                    'enforce_at_jwt_type' => false,
                     'discovery' => [
                         'base_uri' => 'https://www.example.com/realms/demo/',
                         'cache' => [
@@ -301,6 +307,7 @@ class AccessTokenFactoryTest extends TestCase
             'index_3' => ['https://www.example.com'],
             'index_4' => 'sub',
             'index_7' => 0,
+            'index_8' => false,
         ];
         $expectedCalls = [
             [
@@ -331,6 +338,7 @@ class AccessTokenFactoryTest extends TestCase
         $config = [
             'token_handler' => [
                 'oidc' => [
+                    'enforce_at_jwt_type' => false,
                     'discovery' => [
                         'base_uri' => [
                             'https://www.example.com/realms/demo/',
@@ -363,6 +371,7 @@ class AccessTokenFactoryTest extends TestCase
             'index_3' => ['https://www.example.com'],
             'index_4' => 'sub',
             'index_7' => 0,
+            'index_8' => false,
         ];
         $expectedCalls = [
             [
@@ -403,6 +412,7 @@ class AccessTokenFactoryTest extends TestCase
         $config = [
             'token_handler' => [
                 'oidc' => [
+                    'enforce_at_jwt_type' => false,
                     'discovery' => [
                         'base_uri' => 'https://www.example.com/realms/demo/',
                         'cache' => ['id' => 'oidc_cache'],
@@ -667,6 +677,7 @@ class AccessTokenFactoryTest extends TestCase
         $config = [
             'token_handler' => [
                 'oidc' => [
+                    'enforce_at_jwt_type' => false,
                     'algorithms' => ['RS256', 'ES256'],
                     'issuers' => ['https://www.example.com'],
                     'audience' => 'audience',
@@ -704,6 +715,67 @@ class AccessTokenFactoryTest extends TestCase
         $this->assertFalse($container->hasDefinition('security.access_token_handler.oidc.command.generate'));
     }
 
+    #[Group('legacy')]
+    #[IgnoreDeprecations]
+    public function testNotSettingTheAtJwtTypeEnforcementIsDeprecated()
+    {
+        $container = new ContainerBuilder();
+        $config = [
+            'token_handler' => [
+                'oidc' => [
+                    'algorithms' => ['RS256', 'ES256'],
+                    'issuers' => ['https://www.example.com'],
+                    'audience' => 'audience',
+                    'keyset' => '{"keys":[{"kty":"EC","crv":"P-256","x":"FtgMtrsKDboRO-Zo0XC7tDJTATHVmwuf9GK409kkars","y":"rWDE0ERU2SfwGYCo1DWWdgFEbZ0MiAXLRBBOzBgs_jY","d":"4G7bRIiKih0qrFxc0dtvkHUll19tTyctoCR3eIbOrO0"}]}',
+                ],
+            ],
+        ];
+
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $finalizedConfig = $this->processConfig($config, $factory);
+
+        $this->expectUserDeprecationMessage('Since symfony/security-bundle 8.2: Not setting the "enforce_at_jwt_type" option of the "oidc" token handler is deprecated, set it explicitly; it will default to true in 9.0.');
+
+        $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
+
+        $this->assertFalse($container->getDefinition('security.access_token_handler.firewall1')->getArgument(8));
+    }
+
+    public function testOidcTokenHandlerConfigurationWithEnforcedAtJwtType()
+    {
+        $container = new ContainerBuilder();
+        $jwkset = '{"keys":[{"kty":"EC","crv":"P-256","x":"FtgMtrsKDboRO-Zo0XC7tDJTATHVmwuf9GK409kkars","y":"rWDE0ERU2SfwGYCo1DWWdgFEbZ0MiAXLRBBOzBgs_jY","d":"4G7bRIiKih0qrFxc0dtvkHUll19tTyctoCR3eIbOrO0"}]}';
+        $config = [
+            'token_handler' => [
+                'oidc' => [
+                    'algorithms' => ['RS256', 'ES256'],
+                    'issuers' => ['https://www.example.com'],
+                    'audience' => 'audience',
+                    'keyset' => $jwkset,
+                    'enforce_at_jwt_type' => true,
+                ],
+            ],
+        ];
+
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $finalizedConfig = $this->processConfig($config, $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
+
+        $expected = [
+            'index_0' => (new ChildDefinition('security.access_token_handler.oidc.signature'))
+                ->replaceArgument(0, ['RS256', 'ES256']),
+            'index_1' => (new ChildDefinition('security.access_token_handler.oidc.jwkset'))
+                ->replaceArgument(0, $jwkset),
+            'index_2' => 'audience',
+            'index_3' => ['https://www.example.com'],
+            'index_4' => 'sub',
+            'index_7' => 0,
+            'index_8' => true,
+        ];
+        $this->assertEquals($expected, $container->getDefinition('security.access_token_handler.firewall1')->getArguments());
+    }
+
     public function testOidcTokenHandlerConfigurationWithAllowedTimeDrift()
     {
         $container = new ContainerBuilder();
@@ -711,6 +783,7 @@ class AccessTokenFactoryTest extends TestCase
         $config = [
             'token_handler' => [
                 'oidc' => [
+                    'enforce_at_jwt_type' => false,
                     'algorithms' => ['RS256', 'ES256'],
                     'issuers' => ['https://www.example.com'],
                     'audience' => 'audience',
@@ -734,6 +807,7 @@ class AccessTokenFactoryTest extends TestCase
             'index_3' => ['https://www.example.com'],
             'index_4' => 'sub',
             'index_7' => 5,
+            'index_8' => false,
         ];
         $this->assertEquals($expected, $container->getDefinition('security.access_token_handler.firewall1')->getArguments());
     }
