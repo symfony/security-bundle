@@ -15,10 +15,15 @@ security:
         oidc:
             pattern: ^/oidc
             provider: in_memory
+            lazy: true
             oidc_login:
                 provider_uri: 'https://accounts.example.com'
                 client_id: client_id
                 client_secret: client_secret
+                refresh_access_token: true
         main:
             http_basic: ~
             stateless: true
+
+    access_control:
+        - { path: ^/oidc/start, roles: ROLE_USER }

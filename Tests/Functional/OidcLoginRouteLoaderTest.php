@@ -12,7 +12,10 @@
 namespace Symfony\Bundle\SecurityBundle\Tests\Functional;
 
 use Symfony\Component\HttpClient\MockHttpClient;
+use Symfony\Component\HttpClient\Response\JsonMockResponse;
 use Symfony\Component\HttpClient\Response\MockResponse;
+use Symfony\Component\Security\Core\User\InMemoryUser;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class OidcLoginRouteLoaderTest extends AbstractWebTestCase
 {
@@ -72,5 +75,128 @@ class OidcLoginRouteLoaderTest extends AbstractWebTestCase
         $this->assertNotEmpty($query['state']);
         $this->assertNotEmpty($query['nonce']);
         $this->assertNotEmpty($query['code_challenge']);
+    }
+
+    public function testTheAccessTokenIsRenewedOnTheNextRequest()
+    {
+        $client = $this->createClient(['test_case' => 'OidcLoginRouteLoader', 'root_config' => 'config_oidc_refresh.yml']);
+        $client->loginUser(new InMemoryUser('john', 'test', ['ROLE_USER']), 'oidc', [
+            'oidc_access_token' => 'access-123',
+            'oidc_refresh_token' => 'refresh-123',
+            'oidc_access_token_expires_at' => time() - 1,
+        ]);
+        $client->getContainer()->set(HttpClientInterface::class, new MockHttpClient($this->mockProvider([
+            'access_token' => 'access-456',
+            'refresh_token' => 'refresh-456',
+            'expires_in' => 300,
+        ])));
+        $client->getContainer()->get('security.token_storage')->setToken(null);
+
+        $client->request('GET', '/oidc/start');
+
+        $token = unserialize($client->getRequest()->getSession()->get('_security_oidc'));
+        $this->assertSame('access-456', $token->getAttribute('oidc_access_token'));
+        $this->assertSame('refresh-456', $token->getAttribute('oidc_refresh_token'));
+        $this->assertGreaterThan(time(), $token->getAttribute('oidc_access_token_expires_at'));
+    }
+
+    /**
+     * A lazy firewall, which is what the security recipe configures, asks every listener
+     * whether it supports the request before it restores the security token, so a listener
+     * that answers on the strength of that token is dropped from the chain for good.
+     */
+    public function testTheAccessTokenIsRenewedOnALazyFirewall()
+    {
+        $client = $this->createClient(['test_case' => 'OidcLoginRouteLoader', 'root_config' => 'config_oidc_refresh_lazy.yml']);
+        $client->loginUser(new InMemoryUser('john', 'test', ['ROLE_USER']), 'oidc', [
+            'oidc_access_token' => 'access-123',
+            'oidc_refresh_token' => 'refresh-123',
+            'oidc_access_token_expires_at' => time() - 1,
+        ]);
+        $client->getContainer()->set(HttpClientInterface::class, new MockHttpClient($this->mockProvider([
+            'access_token' => 'access-456',
+            'refresh_token' => 'refresh-456',
+            'expires_in' => 300,
+        ])));
+        $client->getContainer()->get('security.token_storage')->setToken(null);
+
+        $client->request('GET', '/oidc/start');
+
+        $token = unserialize($client->getRequest()->getSession()->get('_security_oidc'));
+        $this->assertSame('access-456', $token->getAttribute('oidc_access_token'));
+        $this->assertSame('refresh-456', $token->getAttribute('oidc_refresh_token'));
+    }
+
+    public function testTheUserIsLoggedOutWhenTheProviderRejectsTheRefreshToken()
+    {
+        $client = $this->createClient(['test_case' => 'OidcLoginRouteLoader', 'root_config' => 'config_oidc_refresh.yml']);
+        $client->loginUser(new InMemoryUser('john', 'test', ['ROLE_USER']), 'oidc', [
+            'oidc_access_token' => 'access-123',
+            'oidc_refresh_token' => 'refresh-123',
+            'oidc_access_token_expires_at' => time() - 1,
+        ]);
+        $client->getContainer()->set(HttpClientInterface::class, new MockHttpClient($this->mockProvider(['error' => 'invalid_grant'], 400)));
+        $client->getContainer()->get('security.token_storage')->setToken(null);
+
+        $client->request('GET', '/oidc/start');
+
+        $this->assertNull($client->getRequest()->getSession()->get('_security_oidc'));
+    }
+
+    public function testTheUserIsLoggedOutOnALazyFirewallWhenTheProviderRejectsTheRefreshToken()
+    {
+        $client = $this->createClient(['test_case' => 'OidcLoginRouteLoader', 'root_config' => 'config_oidc_refresh_lazy.yml']);
+        $client->loginUser(new InMemoryUser('john', 'test', ['ROLE_USER']), 'oidc', [
+            'oidc_access_token' => 'access-123',
+            'oidc_refresh_token' => 'refresh-123',
+            'oidc_access_token_expires_at' => time() - 1,
+        ]);
+        $client->getContainer()->set(HttpClientInterface::class, new MockHttpClient($this->mockProvider(['error' => 'invalid_grant'], 400)));
+        $client->getContainer()->get('security.token_storage')->setToken(null);
+
+        $client->request('GET', '/oidc/start');
+
+        $this->assertNull($client->getRequest()->getSession()->get('_security_oidc'));
+    }
+
+    public function testTheAccessTokenIsNotRenewedWithoutTheOption()
+    {
+        $client = $this->createClient(['test_case' => 'OidcLoginRouteLoader', 'root_config' => 'config_oidc.yml']);
+        $client->loginUser(new InMemoryUser('john', 'test', ['ROLE_USER']), 'oidc', [
+            'oidc_access_token' => 'access-123',
+            'oidc_refresh_token' => 'refresh-123',
+            'oidc_access_token_expires_at' => time() - 1,
+        ]);
+        $client->getContainer()->set(HttpClientInterface::class, new MockHttpClient($this->mockProvider(['access_token' => 'access-456'])));
+        $client->getContainer()->get('security.token_storage')->setToken(null);
+
+        $client->request('GET', '/oidc/start');
+
+        $token = unserialize($client->getRequest()->getSession()->get('_security_oidc'));
+        $this->assertSame('access-123', $token->getAttribute('oidc_access_token'));
+    }
+
+    /**
+     * @param array<string, mixed> $tokenEndpointResponse
+     */
+    private function mockProvider(array $tokenEndpointResponse, int $tokenEndpointStatusCode = 200): \Closure
+    {
+        return static function (string $method, string $url) use ($tokenEndpointResponse, $tokenEndpointStatusCode): MockResponse {
+            if (str_contains($url, '/.well-known/openid-configuration')) {
+                return new JsonMockResponse([
+                    'issuer' => 'https://accounts.example.com',
+                    'authorization_endpoint' => 'https://accounts.example.com/authorize',
+                    'token_endpoint' => 'https://accounts.example.com/token',
+                    'userinfo_endpoint' => 'https://accounts.example.com/userinfo',
+                    'jwks_uri' => 'https://accounts.example.com/jwks',
+                ]);
+            }
+
+            if (str_contains($url, '/token')) {
+                return new JsonMockResponse($tokenEndpointResponse, ['http_code' => $tokenEndpointStatusCode]);
+            }
+
+            throw new \LogicException(\sprintf('Unexpected request to "%s".', $url));
+        };
     }
 }

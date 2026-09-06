@@ -24,6 +24,7 @@ CHANGELOG
  * Add a `start_path` option to the `oidc_login` authenticator and declare a route there that starts the flow by redirecting to the provider, for login pages linking to it
  * Add `user_data_source` and `user_identifier_claim` options to the `oidc_login` authenticator
  * Add `enable_end_session` and `post_logout_redirect_path` options to the `oidc_login` authenticator for RP-Initiated Logout
+ * Add the `refresh_access_token` option to the `oidc_login` authenticator to renew the access token before it expires
  * Allow passing a null user to `Security::isGrantedForUser()` and `Security::getAccessDecisionForUser()` to check guest permissions
  * Show why an authenticator did not support the request in the security profiler panel
  * Add the `enforce_at_jwt_type` option to the OIDC token handler configuration to reject the tokens whose `typ` header is not the `at+jwt` RFC 9068 requires from an access token
