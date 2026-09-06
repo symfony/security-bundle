@@ -435,7 +435,7 @@ class AccessTokenFactoryTest extends TestCase
         $reflection = new \ReflectionMethod(OidcTokenHandler::class, 'enableDiscovery');
         $this->assertLessThanOrEqual($reflection->getNumberOfParameters(), \count($methodCalls[0][1]), 'Recorded enableDiscovery call must not pass more arguments than the method accepts.');
 
-        $handler = new OidcTokenHandler(new AlgorithmManager([]), null, 'audience', ['https://www.example.com']);
+        $handler = new OidcTokenHandler(new AlgorithmManager([]), null, 'audience', ['https://www.example.com'], enforceAtJwtType: true);
         $cache = $this->createStub(CacheInterface::class);
         $httpClient = $this->createStub(HttpClientInterface::class);
         $callArgs = $methodCalls[0][1];
