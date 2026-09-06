@@ -574,6 +574,43 @@ class AccessTokenTest extends AbstractWebTestCase
      * The "issuer" the firewall declares reaches the handler, so a token the authorization server
      * reports as active but attributes to another issuer is still refused.
      */
+    /**
+     * RFC 9701: the endpoint is asked for a signed response, and the RFC 7662 members are read from
+     * the "token_introspection" claim of the JWT it answers with.
+     */
+    #[RequiresPhpExtension('openssl')]
+    public function testOAuth2IntrospectionSuccessWithASignedResponse()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_oauth2_signed.yml']);
+        $endpoint = $client->getContainer()->get(IntrospectionResponseFactory::class);
+
+        $client->request('GET', '/foo', [], [], ['HTTP_AUTHORIZATION' => 'Bearer SIGNED_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(['message' => 'Welcome @dunglas!'], json_decode($response->getContent(), true));
+
+        $this->assertSame(['Accept: application/token-introspection+jwt'], $endpoint->requests[0]['options']['normalized_headers']['accept']);
+    }
+
+    /**
+     * An authorization server answering plain JSON to a request that asked for a JWT has given up
+     * the guarantee the resource server required, so the response is refused.
+     */
+    #[RequiresPhpExtension('openssl')]
+    public function testOAuth2IntrospectionFailureOnAnUnsignedResponse()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_oauth2_signed.yml']);
+
+        $client->request('GET', '/foo', [], [], ['HTTP_AUTHORIZATION' => 'Bearer VALID_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertSame('Bearer realm="My API",error="invalid_token",error_description="Invalid credentials."', $response->headers->get('WWW-Authenticate'));
+    }
+
     public function testOAuth2IntrospectionFailureOnAForeignIssuer()
     {
         $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_oauth2.yml']);

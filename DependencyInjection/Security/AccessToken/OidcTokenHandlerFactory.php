@@ -174,7 +174,7 @@ class OidcTokenHandlerFactory implements TokenHandlerFactoryInterface
                         ->scalarPrototype()->end()
                     ->end()
                     ->arrayNode('algorithms', 'algorithm')
-                        ->info('Algorithms used to sign the token.')
+                        ->info('The signature algorithms the token is accepted to be signed with, among "ES256", "ES384", "ES512", "RS256", "RS384", "RS512", "PS256", "PS384" and "PS512". Another algorithm is accepted once its service is tagged "security.access_token_handler.oidc.signature_algorithm". No HMAC algorithm is tagged, so that a public key can never be used as a shared secret.')
                         ->isRequired()
                         ->scalarPrototype()->end()
                     ->end()

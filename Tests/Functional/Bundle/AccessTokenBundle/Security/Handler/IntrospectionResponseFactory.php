@@ -11,6 +11,11 @@
 
 namespace Symfony\Bundle\SecurityBundle\Tests\Functional\Bundle\AccessTokenBundle\Security\Handler;
 
+use Jose\Component\Core\AlgorithmManager;
+use Jose\Component\Core\JWK;
+use Jose\Component\Signature\Algorithm\ES256;
+use Jose\Component\Signature\JWSBuilder;
+use Jose\Component\Signature\Serializer\CompactSerializer;
 use Symfony\Component\HttpClient\Response\JsonMockResponse;
 use Symfony\Component\HttpClient\Response\MockResponse;
 
@@ -34,6 +39,10 @@ final class IntrospectionResponseFactory
 
         parse_str($options['body'] ?? '', $body);
 
+        if ('SIGNED_ACCESS_TOKEN' === ($body['token'] ?? null)) {
+            return self::signedResponse($options['normalized_headers']['accept'] ?? []);
+        }
+
         if ('FOREIGN_ISSUER_ACCESS_TOKEN' === ($body['token'] ?? null)) {
             return new JsonMockResponse([
                 'active' => true,
@@ -55,5 +64,45 @@ final class IntrospectionResponseFactory
             'aud' => ['https://protected.example.net/resource'],
             'exp' => time() + 3600,
         ]);
+    }
+
+    /**
+     * Answers the RFC 9701 signed introspection response, or plain JSON when the request did not
+     * announce that media type, which is what an authorization server unable to sign would do.
+     *
+     * @param list<string> $accept
+     */
+    private static function signedResponse(array $accept): MockResponse
+    {
+        $members = [
+            'active' => true,
+            'sub' => 'dunglas',
+            'iss' => 'https://authorization-server.example.com/',
+            'aud' => ['https://protected.example.net/resource'],
+            'exp' => time() + 3600,
+        ];
+
+        if (!str_contains(implode(',', $accept), 'application/token-introspection+jwt')) {
+            return new JsonMockResponse($members);
+        }
+
+        $jws = (new CompactSerializer())->serialize((new JWSBuilder(new AlgorithmManager([new ES256()])))
+            ->withPayload(json_encode([
+                'iss' => 'https://authorization-server.example.com/',
+                'aud' => 'https://protected.example.net/resource',
+                'iat' => time(),
+                'token_introspection' => $members,
+            ], \JSON_THROW_ON_ERROR))
+            ->addSignature(new JWK([
+                'kty' => 'EC',
+                'crv' => 'P-256',
+                'd' => 'iA_TV2zvftni_9aFAQwFO_9aypfJFCSpcCyevDvz220',
+                'x' => '0QEAsI1wGI-dmYatdUZoWSRWggLEpyzopuhwk-YUnA4',
+                'y' => 'KYl-qyZ26HobuYwlQh-r0iHX61thfP82qqEku7i0woo',
+            ]), ['alg' => 'ES256', 'typ' => 'token-introspection+jwt'])
+            ->build()
+        );
+
+        return new MockResponse($jws, ['response_headers' => ['Content-Type' => 'application/token-introspection+jwt']]);
     }
 }

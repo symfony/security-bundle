@@ -143,7 +143,7 @@ class AccessTokenFactoryTest extends TestCase
         $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
 
         $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage('The child config "algorithms" under "access_token.token_handler.oidc" must be configured: Algorithms used to sign the token.');
+        $this->expectExceptionMessage('The child config "algorithms" under "access_token.token_handler.oidc" must be configured: The signature algorithms the token is accepted to be signed with');
 
         $this->processConfig($config, $factory);
     }
@@ -663,6 +663,81 @@ class AccessTokenFactoryTest extends TestCase
         $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
 
         $this->assertSame(['https://api.example.com', 'https://admin.example.com'], $container->getDefinition('security.access_token_handler.firewall1')->getArgument(2));
+    }
+
+    public function testOAuth2TokenHandlerConfigurationWithASignedResponse()
+    {
+        $container = new ContainerBuilder();
+        $config = [
+            'token_handler' => [
+                'oauth2' => [
+                    'audience' => 'https://api.example.com',
+                    'issuer' => 'https://www.example.com',
+                    'response_signature' => [
+                        'enabled' => true,
+                        'algorithms' => ['RS256'],
+                        'keyset' => '{"keys":[]}',
+                    ],
+                ],
+            ],
+        ];
+
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $finalizedConfig = $this->processConfig($config, $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
+
+        $this->assertEquals([
+            [
+                'enableSignedResponse',
+                [
+                    (new ChildDefinition('security.access_token_handler.oidc.signature'))->replaceArgument(0, ['RS256']),
+                    (new ChildDefinition('security.access_token_handler.oidc.jwkset'))->replaceArgument(0, '{"keys":[]}'),
+                    true,
+                ],
+            ],
+        ], $container->getDefinition('security.access_token_handler.firewall1')->getMethodCalls());
+    }
+
+    public function testOAuth2TokenHandlerConfigurationWithASignedResponseDisabled()
+    {
+        $container = new ContainerBuilder();
+        $config = [
+            'token_handler' => [
+                'oauth2' => [
+                    'http_client' => 'oauth2.client',
+                    'response_signature' => false,
+                ],
+            ],
+        ];
+
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $finalizedConfig = $this->processConfig($config, $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
+
+        $this->assertSame([], $container->getDefinition('security.access_token_handler.firewall1')->getMethodCalls());
+    }
+
+    public function testOAuth2TokenHandlerConfigurationWithASignedResponseAndNoIssuer()
+    {
+        $config = [
+            'token_handler' => [
+                'oauth2' => [
+                    'audience' => 'https://api.example.com',
+                    'response_signature' => [
+                        'enabled' => true,
+                        'algorithms' => ['RS256'],
+                        'keyset' => '{"keys":[]}',
+                    ],
+                ],
+            ],
+        ];
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('The "issuer" and "audience" options of the "oauth2" token handler are required when "response_signature" is enabled: RFC 9701 §5 makes "iss" and "aud" mandatory claims of the response.');
+
+        $this->processConfig($config, new AccessTokenFactory($this->createTokenHandlerFactories()));
     }
 
     public function testOAuth2TokenHandlerConfigurationWithAClientAsAString()

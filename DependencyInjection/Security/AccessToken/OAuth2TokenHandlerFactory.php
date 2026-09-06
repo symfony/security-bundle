@@ -11,6 +11,7 @@
 
 namespace Symfony\Bundle\SecurityBundle\DependencyInjection\Security\AccessToken;
 
+use Jose\Component\Core\Algorithm;
 use Symfony\Component\Config\Definition\Builder\NodeBuilder;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -29,6 +30,11 @@ use Symfony\Contracts\Cache\CacheInterface;
  * holding a colon, a plus, a space or a non-ASCII byte must be encoded before it is passed. What is
  * configured here is only what the firewall itself needs, namely what the response is confronted
  * with.
+ *
+ * The JWKSet and the algorithm manager the "response_signature" option builds are the ones of the
+ * "oidc" token handler: neither is tied to OpenID Connect, they turn a JSON document into a JWKSet
+ * and the algorithms tagged in the bundle into a JWS algorithm manager, which is what RFC 9701 asks
+ * of a resource server verifying a signed introspection response.
  *
  * @internal
  */
@@ -58,6 +64,20 @@ class OAuth2TokenHandlerFactory implements TokenHandlerFactoryInterface
                 $config['cache']['ttl'],
             ]);
         }
+
+        if ($config['response_signature']['enabled']) {
+            if (!ContainerBuilder::willBeAvailable('web-token/jwt-library', Algorithm::class, ['symfony/security-bundle'])) {
+                throw new LogicException('You cannot verify the signature of the introspection responses since "web-token/jwt-library" is not installed. Try running "composer require web-token/jwt-library".');
+            }
+
+            $tokenHandlerDefinition->addMethodCall('enableSignedResponse', [
+                (new ChildDefinition('security.access_token_handler.oidc.signature'))
+                    ->replaceArgument(0, $config['response_signature']['algorithms']),
+                (new ChildDefinition('security.access_token_handler.oidc.jwkset'))
+                    ->replaceArgument(0, $config['response_signature']['keyset']),
+                $config['response_signature']['enforce'],
+            ]);
+        }
     }
 
     public function getKey(): string
@@ -72,6 +92,10 @@ class OAuth2TokenHandlerFactory implements TokenHandlerFactoryInterface
                 ->beforeNormalization()
                     ->ifString()
                     ->then(static fn ($v) => ['http_client' => $v])
+                ->end()
+                ->validate()
+                    ->ifTrue(static fn ($v) => $v['response_signature']['enabled'] && (null === $v['issuer'] || !$v['audience']))
+                    ->thenInvalid('The "issuer" and "audience" options of the "oauth2" token handler are required when "response_signature" is enabled: RFC 9701 §5 makes "iss" and "aud" mandatory claims of the response.')
                 ->end()
                 ->children()
                     ->scalarNode('http_client')
@@ -110,6 +134,28 @@ class OAuth2TokenHandlerFactory implements TokenHandlerFactoryInterface
                                 ->info('Maximum lifetime in seconds of a cached introspection response. The shorter it is, the sooner a revoked token stops being accepted.')
                                 ->defaultValue(60)
                                 ->min(1)
+                            ->end()
+                        ->end()
+                    ->end()
+                    ->arrayNode('response_signature')
+                        ->info('Ask the authorization server for a signed introspection response (RFC 9701) and verify it.')
+                        ->canBeEnabled()
+                        ->validate()
+                            ->ifTrue(static fn ($v) => $v['enabled'] && (!$v['algorithms'] || !$v['keyset']))
+                            ->thenInvalid('The "algorithms" and "keyset" options of the "response_signature" option are required when it is enabled.')
+                        ->end()
+                        ->children()
+                            ->booleanNode('enforce')
+                                ->info('When enabled (default), a plain JSON introspection response is refused.')
+                                ->defaultTrue()
+                            ->end()
+                            ->arrayNode('algorithms', 'algorithm')
+                                ->info('The signature algorithms the introspection response is accepted to be signed with, among "ES256", "ES384", "ES512", "RS256", "RS384", "RS512", "PS256", "PS384" and "PS512"; list the ones your authorization server announces in "introspection_signing_alg_values_supported". Another algorithm is accepted once its service is tagged "security.access_token_handler.oidc.signature_algorithm". No HMAC algorithm is tagged, so that a public key can never be used as a shared secret.')
+                                ->scalarPrototype()->cannotBeEmpty()->end()
+                            ->end()
+                            ->scalarNode('keyset')
+                                ->info('JSON-encoded JWKSet holding the public keys of your authorization server, the ones it announces at its "jwks_uri", which the introspection response is verified against.')
+                                ->defaultNull()
                             ->end()
                         ->end()
                     ->end()
