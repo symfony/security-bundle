@@ -22,6 +22,7 @@ use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\AccessToken\OidcT
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\AccessToken\OidcUserInfoTokenHandlerFactory;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\AccessToken\ServiceTokenHandlerFactory;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\Factory\AccessTokenFactory;
+use Symfony\Component\Clock\Clock;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ChildDefinition;
@@ -435,7 +436,7 @@ class AccessTokenFactoryTest extends TestCase
         $reflection = new \ReflectionMethod(OidcTokenHandler::class, 'enableDiscovery');
         $this->assertLessThanOrEqual($reflection->getNumberOfParameters(), \count($methodCalls[0][1]), 'Recorded enableDiscovery call must not pass more arguments than the method accepts.');
 
-        $handler = new OidcTokenHandler(new AlgorithmManager([]), null, 'audience', ['https://www.example.com'], enforceAtJwtType: true);
+        $handler = new OidcTokenHandler(new AlgorithmManager([]), null, 'audience', ['https://www.example.com'], 'sub', null, new Clock(), 0, true);
         $cache = $this->createStub(CacheInterface::class);
         $httpClient = $this->createStub(HttpClientInterface::class);
         $callArgs = $methodCalls[0][1];
