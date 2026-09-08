@@ -73,10 +73,19 @@ class OAuth2TokenHandlerFactory implements TokenHandlerFactoryInterface
             $tokenHandlerDefinition->addMethodCall('enableSignedResponse', [
                 (new ChildDefinition('security.access_token_handler.oidc.signature'))
                     ->replaceArgument(0, $config['response_signature']['algorithms']),
-                (new ChildDefinition('security.access_token_handler.oidc.jwkset'))
-                    ->replaceArgument(0, $config['response_signature']['keyset']),
+                $config['response_signature']['keyset']
+                    ? (new ChildDefinition('security.access_token_handler.oidc.jwkset'))->replaceArgument(0, $config['response_signature']['keyset'])
+                    : null,
                 $config['response_signature']['enforce'],
             ]);
+
+            if ($config['response_signature']['discovery']['enabled']) {
+                $tokenHandlerDefinition->addMethodCall('enableSignedResponseDiscovery', [
+                    new Reference($config['response_signature']['discovery']['cache']['id']),
+                    (new ChildDefinition('security.access_token_handler.oidc_discovery.http_client'))->replaceArgument(0, []),
+                    "$id.authorization_server_metadata",
+                ]);
+            }
         }
     }
 
@@ -141,8 +150,12 @@ class OAuth2TokenHandlerFactory implements TokenHandlerFactoryInterface
                         ->info('Ask the authorization server for a signed introspection response (RFC 9701) and verify it.')
                         ->canBeEnabled()
                         ->validate()
-                            ->ifTrue(static fn ($v) => $v['enabled'] && !$v['keyset'])
-                            ->thenInvalid('The "keyset" option of the "response_signature" option is required when it is enabled.')
+                            ->ifTrue(static fn ($v) => $v['enabled'] && !$v['keyset'] && !$v['discovery']['enabled'])
+                            ->thenInvalid('The "response_signature" option needs the keys it verifies the introspection response against: set its "keyset", or enable its "discovery" to read them from the authorization server metadata.')
+                        ->end()
+                        ->validate()
+                            ->ifTrue(static fn ($v) => $v['enabled'] && $v['keyset'] && $v['discovery']['enabled'])
+                            ->thenInvalid('The "keyset" and "discovery" options of the "response_signature" option are exclusive: the keys come either from the configuration or from the authorization server metadata.')
                         ->end()
                         ->children()
                             ->booleanNode('enforce')
@@ -154,6 +167,22 @@ class OAuth2TokenHandlerFactory implements TokenHandlerFactoryInterface
                                 ->defaultValue(['RS256'])
                                 ->requiresAtLeastOneElement()
                                 ->scalarPrototype()->cannotBeEmpty()->end()
+                            ->end()
+                            ->arrayNode('discovery')
+                                ->info('Read the keys the introspection response is verified against from the RFC 8414 metadata of the authorization server, whose URL is derived from the "issuer" this handler already declares. Only the "jwks_uri" is read from it: which algorithms are accepted stays declared here, so that an authorization server cannot widen it by announcing more.')
+                                ->canBeEnabled()
+                                ->children()
+                                    ->arrayNode('cache')
+                                        ->addDefaultsIfNotSet()
+                                        ->children()
+                                            ->scalarNode('id')
+                                                ->info('Cache service id the metadata document and the keys it points at are stored in.')
+                                                ->defaultValue('cache.app')
+                                                ->cannotBeEmpty()
+                                            ->end()
+                                        ->end()
+                                    ->end()
+                                ->end()
                             ->end()
                             ->scalarNode('keyset')
                                 ->info('JSON-encoded JWKSet holding the public keys of your authorization server, the ones it announces at its "jwks_uri", which the introspection response is verified against.')

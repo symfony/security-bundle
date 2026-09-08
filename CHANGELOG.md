@@ -10,6 +10,7 @@ CHANGELOG
  * Default the `algorithms` option of the `oidc` token handler and of the `response_signature` option of the `oauth2` one to `RS256`, which OIDC Core 1.0 requires every provider to support
  * Require OAuth2 scopes of the access token with an `OAUTH2_SCOPE(...)` attribute, and answer a denial with the RFC 6750 §3.1 `insufficient_scope` challenge
  * Add the `http_client`, `issuer`, `audience`, `claim`, `allowed_time_drift`, `cache` and `response_signature` options to the `oauth2` token handler, whose configuration used to be ignored. The `audience` option takes a single identifier as a string or several as a list
+ * Add the `discovery` option to the `response_signature` of the `oauth2` token handler, to read its keys from the RFC 8414 authorization server metadata
  * Fix the `oauth2` token handler, which could not reach any introspection endpoint: `oauth2: ~` made the container fail to compile, and the endpoint was requested with an empty URL
  * Allow disabling the redirection on successful logout by passing `null` to the `target` option
  * Deprecate the `remember_me` option of the `form_login`, `json_login`, `login_link`, and `access_token` authenticators, as it has no effect
