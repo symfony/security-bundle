@@ -173,6 +173,7 @@ class SecurityExtension extends Extension implements PrependExtensionInterface
         } else {
             $container->removeDefinition('security.route_loader.logout');
             $container->removeDefinition('security.authenticator.oidc_login.route_loader');
+            $container->removeDefinition('security.authenticator.access_token.route_loader');
         }
 
         $this->createAuthorization($config, $container);

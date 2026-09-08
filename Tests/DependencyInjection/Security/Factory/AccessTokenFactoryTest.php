@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\SecurityBundle\Controller\ProtectedResourceMetadataController;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\AccessToken\CasTokenHandlerFactory;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\AccessToken\OAuth2TokenHandlerFactory;
 use Symfony\Bundle\SecurityBundle\DependencyInjection\Security\AccessToken\OidcTokenHandlerFactory;
@@ -654,6 +655,186 @@ class AccessTokenFactoryTest extends TestCase
         $normalizedConfig = $node->normalize($config);
 
         return $node->finalize($normalizedConfig);
+    }
+
+    public function testNoResourceMetadataIsServedByDefault()
+    {
+        $container = $this->createContainerBuilder();
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $config = $this->processConfig(['token_handler' => 'in_memory_token_handler_service_id'], $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $config, 'userprovider');
+
+        $this->assertNull($container->getDefinition('security.authenticator.access_token.firewall1')->getArgument(6));
+        $this->assertSame([], $container->getParameter('security.access_token.resource_metadata_paths'));
+        $this->assertSame([], $container->getDefinition('security.authenticator.access_token.protected_resource_metadata_controller')->getArgument(0));
+    }
+
+    public function testResourceMetadataIsServedAtTheWellKnownPath()
+    {
+        $container = $this->createContainerBuilder();
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $config = $this->processConfig([
+            'token_handler' => 'in_memory_token_handler_service_id',
+            'resource_metadata' => [
+                'authorization_servers' => 'https://accounts.example.com',
+                'scopes_supported' => ['profile', 'email'],
+                'resource_name' => 'My API',
+            ],
+        ], $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $config, 'userprovider');
+
+        // without a "resource", the URL can only be resolved against the incoming request
+        $this->assertSame('/.well-known/oauth-protected-resource', $container->getDefinition('security.authenticator.access_token.firewall1')->getArgument(6));
+        $this->assertSame(['firewall1' => '/.well-known/oauth-protected-resource'], $container->getParameter('security.access_token.resource_metadata_paths'));
+        $this->assertSame(['firewall1' => [
+            'authorization_servers' => ['https://accounts.example.com'],
+            'scopes_supported' => ['profile', 'email'],
+            'bearer_methods_supported' => ['header'],
+            'resource_name' => 'My API',
+        ]], $container->getDefinition('security.authenticator.access_token.protected_resource_metadata_controller')->getArgument(0));
+    }
+
+    public function testTheResourcePathIsInsertedAfterTheWellKnownPath()
+    {
+        $container = $this->createContainerBuilder();
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $config = $this->processConfig([
+            'token_handler' => 'in_memory_token_handler_service_id',
+            'resource_metadata' => ['resource' => 'https://api.example.com:8443/v1/'],
+        ], $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $config, 'userprovider');
+
+        $this->assertSame('https://api.example.com:8443/.well-known/oauth-protected-resource/v1', $container->getDefinition('security.authenticator.access_token.firewall1')->getArgument(6));
+        $this->assertSame(['firewall1' => '/.well-known/oauth-protected-resource/v1'], $container->getParameter('security.access_token.resource_metadata_paths'));
+        $this->assertSame(['firewall1' => [
+            'resource' => 'https://api.example.com:8443/v1/',
+            'bearer_methods_supported' => ['header'],
+        ]], $container->getDefinition('security.authenticator.access_token.protected_resource_metadata_controller')->getArgument(0));
+    }
+
+    #[DataProvider('provideBearerMethods')]
+    public function testBearerMethodsAreDeducedFromTheTokenExtractors(array $extractors, array $expected)
+    {
+        $container = $this->createContainerBuilder();
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $config = $this->processConfig([
+            'token_handler' => 'in_memory_token_handler_service_id',
+            'token_extractors' => $extractors,
+            'resource_metadata' => [],
+        ], $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $config, 'userprovider');
+
+        $metadata = $container->getDefinition('security.authenticator.access_token.protected_resource_metadata_controller')->getArgument(0)['firewall1'];
+        $this->assertSame($expected, $metadata['bearer_methods_supported'] ?? []);
+    }
+
+    public static function provideBearerMethods(): iterable
+    {
+        yield 'aliases' => [['header', 'request_body', 'query_string'], ['header', 'body', 'query']];
+        yield 'service ids' => [['security.access_token_extractor.query_string'], ['query']];
+        yield 'the same method twice' => [['header', 'security.access_token_extractor.header'], ['header']];
+        yield 'a custom extractor names no method' => [['custom_extractor_service_id'], []];
+        yield 'a custom extractor next to a known one' => [['custom_extractor_service_id', 'header'], ['header']];
+    }
+
+    public function testConfiguredBearerMethodsWinOverTheDeducedOnes()
+    {
+        $container = $this->createContainerBuilder();
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $config = $this->processConfig([
+            'token_handler' => 'in_memory_token_handler_service_id',
+            'token_extractors' => ['custom_extractor_service_id'],
+            'resource_metadata' => ['bearer_methods_supported' => 'header'],
+        ], $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $config, 'userprovider');
+
+        $metadata = $container->getDefinition('security.authenticator.access_token.protected_resource_metadata_controller')->getArgument(0)['firewall1'];
+        $this->assertSame(['header'], $metadata['bearer_methods_supported']);
+    }
+
+    public function testEachFirewallGetsItsOwnMetadata()
+    {
+        $container = $this->createContainerBuilder();
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+
+        foreach (['firewall1' => 'https://example.com/api', 'firewall2' => 'https://example.com/admin'] as $firewallName => $resource) {
+            $config = $this->processConfig([
+                'token_handler' => 'in_memory_token_handler_service_id',
+                'resource_metadata' => ['resource' => $resource],
+            ], $factory);
+
+            $factory->createAuthenticator($container, $firewallName, $config, 'userprovider');
+        }
+
+        $this->assertSame([
+            'firewall1' => '/.well-known/oauth-protected-resource/api',
+            'firewall2' => '/.well-known/oauth-protected-resource/admin',
+        ], $container->getParameter('security.access_token.resource_metadata_paths'));
+        $this->assertSame(['firewall1', 'firewall2'], array_keys($container->getDefinition('security.authenticator.access_token.protected_resource_metadata_controller')->getArgument(0)));
+    }
+
+    #[DataProvider('provideInvalidResourceIdentifiers')]
+    public function testInvalidResourceIdentifier(string $resource)
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('The protected resource "resource" identifier must be an HTTPS URL without a fragment');
+
+        $this->processConfig([
+            'token_handler' => 'in_memory_token_handler_service_id',
+            'resource_metadata' => ['resource' => $resource],
+        ], new AccessTokenFactory($this->createTokenHandlerFactories()));
+    }
+
+    public static function provideInvalidResourceIdentifiers(): iterable
+    {
+        // the well-known path is derived from the path component of the identifier when the
+        // route is declared, so a value the container cannot parse cannot be served
+        yield 'an environment variable used as the whole value' => ['env_2b0d1a_API_RESOURCE_4f8c'];
+        yield 'not HTTPS' => ['http://api.example.com'];
+        yield 'with a fragment' => ['https://api.example.com/v1#api'];
+        yield 'no URL at all' => ['https://api.example.com:port/v1'];
+    }
+
+    #[DataProvider('provideValidResourceIdentifiers')]
+    public function testValidResourceIdentifier(string $resource, string $expectedPath, string $expectedUri)
+    {
+        $container = $this->createContainerBuilder();
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $config = $this->processConfig([
+            'token_handler' => 'in_memory_token_handler_service_id',
+            'resource_metadata' => ['resource' => $resource],
+        ], $factory);
+
+        $factory->createAuthenticator($container, 'firewall1', $config, 'userprovider');
+
+        $this->assertSame($expectedPath, $container->getParameter('security.access_token.resource_metadata_paths')['firewall1']);
+        $this->assertSame($expectedUri, $container->getDefinition('security.authenticator.access_token.firewall1')->getArgument(6));
+    }
+
+    public static function provideValidResourceIdentifiers(): iterable
+    {
+        yield 'HTTPS' => ['https://api.example.com', '/.well-known/oauth-protected-resource', 'https://api.example.com/.well-known/oauth-protected-resource'];
+        yield 'a loopback host over HTTP' => ['http://127.0.0.1:8000/api', '/.well-known/oauth-protected-resource/api', 'http://127.0.0.1:8000/.well-known/oauth-protected-resource/api'];
+        yield 'a host reserved for testing' => ['http://api.example.test', '/.well-known/oauth-protected-resource', 'http://api.example.test/.well-known/oauth-protected-resource'];
+        // a query is only a SHOULD NOT, and RFC 9728, Section 3.1 keeps it after the path
+        yield 'with a query' => ['https://api.example.com/v1?tenant=acme', '/.well-known/oauth-protected-resource/v1', 'https://api.example.com/.well-known/oauth-protected-resource/v1?tenant=acme'];
+        // an environment variable interpolated into the URL still leaves the path readable
+        yield 'an environment variable inside a URL' => ['https://env_2b0d1a_API_HOST_4f8c/v1', '/.well-known/oauth-protected-resource/v1', 'https://env_2b0d1a_API_HOST_4f8c/.well-known/oauth-protected-resource/v1'];
+    }
+
+    private function createContainerBuilder(): ContainerBuilder
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('security.access_token.resource_metadata_paths', []);
+        $container->register('security.authenticator.access_token.protected_resource_metadata_controller', ProtectedResourceMetadataController::class)
+            ->setArguments([[]]);
+
+        return $container;
     }
 
     private function createTokenHandlerFactories(): array

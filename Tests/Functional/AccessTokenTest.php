@@ -43,6 +43,48 @@ class AccessTokenTest extends AbstractWebTestCase
         $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_no_extractors.yml']);
     }
 
+    public function testProtectedResourceMetadataIsServedAndAdvertised()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_resource_metadata.yml']);
+
+        $client->request('GET', '/foo', server: ['HTTP_AUTHORIZATION' => 'Bearer INVALID_ACCESS_TOKEN']);
+        $response = $client->getResponse();
+
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertSame('Bearer realm="My API",error="invalid_token",error_description="Invalid credentials.",resource_metadata="http://localhost/.well-known/oauth-protected-resource"', $response->headers->get('WWW-Authenticate'));
+
+        // the primary RFC 9728 discovery flow: a client holding no token yet is told where
+        // the document is, which the firewall can only answer as its entry point
+        $client->request('GET', '/foo');
+        $response = $client->getResponse();
+
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertSame('Bearer realm="My API",resource_metadata="http://localhost/.well-known/oauth-protected-resource"', $response->headers->get('WWW-Authenticate'));
+
+        $client->request('GET', '/.well-known/oauth-protected-resource');
+        $response = $client->getResponse();
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('application/json', $response->headers->get('Content-Type'));
+        $this->assertSame([
+            'resource' => 'http://localhost',
+            'authorization_servers' => ['https://accounts.example.com'],
+            'scopes_supported' => ['profile', 'email'],
+            'bearer_methods_supported' => ['header', 'query'],
+            'resource_name' => 'My API',
+            'resource_documentation' => 'https://api.example.com/docs',
+        ], json_decode($response->getContent(), true));
+    }
+
+    public function testNoProtectedResourceMetadataRouteWithoutTheConfiguration()
+    {
+        $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_header_default.yml']);
+
+        $client->request('GET', '/.well-known/oauth-protected-resource');
+
+        $this->assertSame(404, $client->getResponse()->getStatusCode());
+    }
+
     public function testAnonymousAccessIsGranted()
     {
         $client = $this->createClient(['test_case' => 'AccessToken', 'root_config' => 'config_anonymous.yml']);

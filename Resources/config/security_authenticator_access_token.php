@@ -33,6 +33,8 @@ use Jose\Component\Signature\Algorithm\PS512;
 use Jose\Component\Signature\Algorithm\RS256;
 use Jose\Component\Signature\Algorithm\RS384;
 use Jose\Component\Signature\Algorithm\RS512;
+use Symfony\Bundle\SecurityBundle\Controller\ProtectedResourceMetadataController;
+use Symfony\Bundle\SecurityBundle\Routing\ProtectedResourceMetadataRouteLoader;
 use Symfony\Component\Security\Http\AccessToken\ChainAccessTokenExtractor;
 use Symfony\Component\Security\Http\AccessToken\FormEncodedBodyExtractor;
 use Symfony\Component\Security\Http\AccessToken\HeaderAccessTokenExtractor;
@@ -45,6 +47,12 @@ use Symfony\Component\Security\Http\Authenticator\AccessTokenAuthenticator;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 return static function (ContainerConfigurator $container) {
+    $container->parameters()
+        // the protected resource metadata route loader is wired on this parameter, which the
+        // "access_token" firewall factory fills in; it stays empty when no firewall declares one
+        ->set('security.access_token.resource_metadata_paths', [])
+    ;
+
     $container->services()
         ->set('security.access_token_extractor.header', HeaderAccessTokenExtractor::class)
         ->set('security.access_token_extractor.query_string', QueryAccessTokenExtractor::class)
@@ -59,7 +67,21 @@ return static function (ContainerConfigurator $container) {
                 null,
                 null,
                 null,
+                null,
             ])
+
+        ->set('security.authenticator.access_token.protected_resource_metadata_controller', ProtectedResourceMetadataController::class)
+            ->public()
+            ->args([
+                [],
+            ])
+
+        ->set('security.authenticator.access_token.route_loader', ProtectedResourceMetadataRouteLoader::class)
+            ->args([
+                '%security.access_token.resource_metadata_paths%',
+                'security.access_token.resource_metadata_paths',
+            ])
+            ->tag('routing.route_loader')
 
         ->set('security.authenticator.access_token.chain_extractor', ChainAccessTokenExtractor::class)
             ->abstract()
