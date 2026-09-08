@@ -16,8 +16,10 @@ use Symfony\Component\Security\Http\Authenticator\Oidc\OidcConfidentialClient;
 use Symfony\Component\Security\Http\Authenticator\Oidc\OidcIdToken;
 use Symfony\Component\Security\Http\Authenticator\Oidc\OidcPublicClient;
 use Symfony\Component\Security\Http\Authenticator\Oidc\OidcSignatureVerifier;
+use Symfony\Component\Security\Http\Authenticator\Oidc\OidcTokenRefresher;
 use Symfony\Component\Security\Http\Authenticator\OidcLoginAuthenticator;
 use Symfony\Component\Security\Http\EventListener\OidcEndSessionListener;
+use Symfony\Component\Security\Http\Firewall\OidcTokenRefreshListener;
 use Symfony\Component\Security\Http\Oidc\OidcDiscovery;
 
 return static function (ContainerConfigurator $container) {
@@ -37,6 +39,7 @@ return static function (ContainerConfigurator $container) {
                 abstract_arg('authorization params'),
                 // replaced by the firewall verifier, unless the ID token signature is not verified
                 null,
+                service('clock'),
             ])
 
         ->set('security.authenticator.oidc_login.signature_verifier', OidcSignatureVerifier::class)
@@ -97,6 +100,28 @@ return static function (ContainerConfigurator $container) {
             ->args([
                 service_locator([]),
             ])
+
+        ->set('security.authenticator.oidc_login.token_refresher', OidcTokenRefresher::class)
+            ->abstract()
+            ->args([
+                abstract_arg('OIDC client'),
+                abstract_arg('OIDC discovery'),
+                abstract_arg('ID token'),
+                abstract_arg('client ID'),
+                // replaced by the firewall verifier, unless the ID token signature is not verified
+                null,
+                abstract_arg('leeway'),
+                service('clock'),
+            ])
+
+        ->set('security.authenticator.oidc_login.token_refresh_listener', OidcTokenRefreshListener::class)
+            ->abstract()
+            ->args([
+                service('security.token_storage'),
+                abstract_arg('OIDC token refresher'),
+                service('logger')->nullOnInvalid(),
+            ])
+            ->tag('monolog.logger', ['channel' => 'security'])
 
         ->set('security.authenticator.oidc_login.end_session_listener', OidcEndSessionListener::class)
             ->abstract()

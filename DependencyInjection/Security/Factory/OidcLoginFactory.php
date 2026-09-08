@@ -30,7 +30,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  *
  * @internal
  */
-class OidcLoginFactory extends AbstractFactory
+class OidcLoginFactory extends AbstractFactory implements FirewallListenerFactoryInterface
 {
     public const PRIORITY = -25;
 
@@ -159,6 +159,17 @@ class OidcLoginFactory extends AbstractFactory
                     ->thenInvalid('The OIDC "authorization_params" option cannot set "response_type", "client_id", "redirect_uri", "scope", "state", "nonce", "code_challenge", "code_challenge_method" nor "max_age": the authenticator manages these; use the dedicated "scope" and "max_age" options.')
                 ->end()
             ->end()
+            ->arrayNode('refresh_access_token')
+                ->canBeEnabled()
+                ->info('Renew the access token with the refresh token grant of RFC 6749, Section 6, so that it stays usable to call an API on behalf of the logged-in user. The provider only issues a refresh token when it was asked for one, e.g. with the "offline_access" scope, and the renewal needs the "expires_in" it is optional for the provider to report. Whether this is enabled or not, the tokens are held as the "oidc_refresh_token", "oidc_access_token" and "oidc_access_token_expires_at" attributes of the security token, and the "security.authenticator.oidc_login.token_refresher.<firewall>" service renews them on demand. A provider rotating refresh tokens expects the previous one never to be replayed, which a session handler locking the session guarantees, and the default one does.')
+                ->children()
+                    ->integerNode('leeway')
+                        ->defaultValue(30)
+                        ->min(0)
+                        ->info('How many seconds before its expiry the access token is renewed, so that one handed to a call in flight does not expire on the way.')
+                    ->end()
+                ->end()
+            ->end()
             ->booleanNode('enable_end_session')
                 ->defaultFalse()
                 ->info('Enable RP-Initiated Logout via the OIDC end_session_endpoint.')
@@ -278,6 +289,16 @@ class OidcLoginFactory extends AbstractFactory
             $signatureVerifier = new Reference($signatureVerifierId);
         }
 
+        $container
+            ->setDefinition('security.authenticator.oidc_login.token_refresher.'.$firewallName, new ChildDefinition('security.authenticator.oidc_login.token_refresher'))
+            ->replaceArgument(0, new Reference($oidcClientId))
+            ->replaceArgument(1, new Reference($discoveryId))
+            ->replaceArgument(2, new Reference($idTokenId))
+            ->replaceArgument(3, $config['client_id'])
+            ->replaceArgument(4, $signatureVerifier)
+            ->replaceArgument(5, $config['refresh_access_token']['leeway'])
+        ;
+
         $authenticatorId = 'security.authenticator.oidc_login.'.$firewallName;
         $options = array_intersect_key($config, $this->options);
         $options['firewall_name'] = $firewallName;
@@ -332,5 +353,23 @@ class OidcLoginFactory extends AbstractFactory
         $startControllerLocator->setValues([$firewallName => new Reference($authenticatorId)] + $startControllerLocator->getValues());
 
         return $authenticatorId;
+    }
+
+    public function createListeners(ContainerBuilder $container, string $firewallName, array $config): array
+    {
+        if (!$config['refresh_access_token']['enabled']) {
+            return [];
+        }
+
+        // the listener runs once the firewall restored the security token from the
+        // session, so the renewed tokens are the ones this request and the rest of the
+        // session see
+        $listenerId = 'security.authenticator.oidc_login.token_refresh_listener.'.$firewallName;
+        $container
+            ->setDefinition($listenerId, new ChildDefinition('security.authenticator.oidc_login.token_refresh_listener'))
+            ->replaceArgument(1, new Reference('security.authenticator.oidc_login.token_refresher.'.$firewallName))
+        ;
+
+        return [$listenerId];
     }
 }

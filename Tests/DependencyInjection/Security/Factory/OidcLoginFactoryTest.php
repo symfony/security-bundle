@@ -177,6 +177,8 @@ class OidcLoginFactoryTest extends TestCase
         $this->assertSame('S256', $finalizedConfig['pkce']['method']);
         $this->assertSame(3600, $finalizedConfig['discovery_cache_ttl']);
         $this->assertSame([], $finalizedConfig['authorization_params']);
+        $this->assertFalse($finalizedConfig['refresh_access_token']['enabled']);
+        $this->assertSame(30, $finalizedConfig['refresh_access_token']['leeway']);
         $this->assertArrayNotHasKey('max_age', $finalizedConfig);
     }
 
@@ -877,6 +879,95 @@ class OidcLoginFactoryTest extends TestCase
         $factory->createAuthenticator($container, 'main', $config, 'userprovider');
 
         $this->assertSame(['authorization_endpoint', 'token_endpoint'], $container->getDefinition('security.authenticator.oidc_login.discovery.main')->getArgument(6));
+    }
+
+    public function testTokenRefresherIsAlwaysWired()
+    {
+        // the refresh token is kept on the security token whatever the configuration, so
+        // an application renewing the access token by itself needs no option turned on
+        $container = new ContainerBuilder();
+        $factory = new OidcLoginFactory();
+
+        $config = $this->processConfig([
+            'provider_uri' => 'https://provider.example.com',
+            'client_id' => 'my-client-id',
+            'client_secret' => 'my-client-secret',
+        ], $factory);
+        $factory->createAuthenticator($container, 'main', $config, 'userprovider');
+
+        $refresher = $container->getDefinition('security.authenticator.oidc_login.token_refresher.main');
+        $this->assertEquals(new Reference('security.authenticator.oidc_login.client.main'), $refresher->getArgument(0));
+        $this->assertEquals(new Reference('security.authenticator.oidc_login.discovery.main'), $refresher->getArgument(1));
+        $this->assertEquals(new Reference('security.authenticator.oidc_login.id_token.main'), $refresher->getArgument(2));
+        $this->assertSame('my-client-id', $refresher->getArgument(3));
+        $this->assertEquals(new Reference('security.authenticator.oidc_login.signature_verifier.main'), $refresher->getArgument(4));
+        $this->assertSame(30, $refresher->getArgument(5));
+    }
+
+    public function testTokenRefresherVerifiesNoSignatureWhenTheAuthenticatorDoesNot()
+    {
+        $container = new ContainerBuilder();
+        $factory = new OidcLoginFactory();
+
+        $config = $this->processConfig([
+            'provider_uri' => 'https://provider.example.com',
+            'client_id' => 'my-client-id',
+            'client_secret' => 'my-client-secret',
+            'id_token_signature' => ['required' => false],
+        ], $factory);
+        $factory->createAuthenticator($container, 'main', $config, 'userprovider');
+
+        $this->assertNull($container->getDefinition('security.authenticator.oidc_login.token_refresher.main')->getArgument(4));
+    }
+
+    public function testTokenRefreshListenerIsNotRegisteredByDefault()
+    {
+        $container = new ContainerBuilder();
+        $factory = new OidcLoginFactory();
+
+        $config = $this->processConfig([
+            'provider_uri' => 'https://provider.example.com',
+            'client_id' => 'my-client-id',
+            'client_secret' => 'my-client-secret',
+        ], $factory);
+        $factory->createAuthenticator($container, 'main', $config, 'userprovider');
+
+        $this->assertSame([], $factory->createListeners($container, 'main', $config));
+        $this->assertFalse($container->hasDefinition('security.authenticator.oidc_login.token_refresh_listener.main'));
+    }
+
+    public function testTokenRefreshListenerIsRegisteredWhenEnabled()
+    {
+        $container = new ContainerBuilder();
+        $factory = new OidcLoginFactory();
+
+        $config = $this->processConfig([
+            'provider_uri' => 'https://provider.example.com',
+            'client_id' => 'my-client-id',
+            'client_secret' => 'my-client-secret',
+            'refresh_access_token' => ['enabled' => true, 'leeway' => 60],
+        ], $factory);
+        $factory->createAuthenticator($container, 'main', $config, 'userprovider');
+
+        $this->assertSame(['security.authenticator.oidc_login.token_refresh_listener.main'], $factory->createListeners($container, 'main', $config));
+
+        $listener = $container->getDefinition('security.authenticator.oidc_login.token_refresh_listener.main');
+        $this->assertEquals(new Reference('security.authenticator.oidc_login.token_refresher.main'), $listener->getArgument(1));
+        $this->assertSame(60, $container->getDefinition('security.authenticator.oidc_login.token_refresher.main')->getArgument(5));
+    }
+
+    public function testRejectsANegativeLeeway()
+    {
+        $factory = new OidcLoginFactory();
+
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->processConfig([
+            'provider_uri' => 'https://provider.example.com',
+            'client_id' => 'my-client-id',
+            'client_secret' => 'my-client-secret',
+            'refresh_access_token' => ['enabled' => true, 'leeway' => -1],
+        ], $factory);
     }
 
     private function processConfig(array $config, OidcLoginFactory $factory): array

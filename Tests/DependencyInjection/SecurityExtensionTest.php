@@ -1319,6 +1319,63 @@ class SecurityExtensionTest extends TestCase
         $this->assertContains('custom_firewall_listener_id', $firewallListeners);
     }
 
+    public function testOidcLoginRegistersTheTokenRefreshListenerAfterTheContextListener()
+    {
+        // the listener renews the tokens the context listener just restored from the
+        // session, so it is worthless anywhere before it
+        $container = $this->getRawContainer();
+
+        $container->loadFromExtension('security', [
+            'firewalls' => [
+                'main' => [
+                    'oidc_login' => [
+                        'provider_uri' => 'https://provider.example.com',
+                        'client_id' => 'my-client-id',
+                        'client_secret' => 'my-client-secret',
+                        'refresh_access_token' => true,
+                    ],
+                ],
+            ],
+        ]);
+
+        $container->compile();
+
+        /** @var IteratorArgument $listenersIteratorArgument */
+        $listenersIteratorArgument = $container->getDefinition('security.firewall.map.context.main')->getArgument(0);
+        $firewallListeners = array_map('strval', $listenersIteratorArgument->getValues());
+
+        $this->assertContains('security.authenticator.oidc_login.token_refresh_listener.main', $firewallListeners);
+        $this->assertGreaterThan(
+            array_search('security.context_listener.0', $firewallListeners, true),
+            array_search('security.authenticator.oidc_login.token_refresh_listener.main', $firewallListeners, true),
+        );
+    }
+
+    public function testOidcLoginRegistersNoTokenRefreshListenerByDefault()
+    {
+        $container = $this->getRawContainer();
+
+        $container->loadFromExtension('security', [
+            'firewalls' => [
+                'main' => [
+                    'oidc_login' => [
+                        'provider_uri' => 'https://provider.example.com',
+                        'client_id' => 'my-client-id',
+                        'client_secret' => 'my-client-secret',
+                    ],
+                ],
+            ],
+        ]);
+
+        $container->compile();
+
+        /** @var IteratorArgument $listenersIteratorArgument */
+        $listenersIteratorArgument = $container->getDefinition('security.firewall.map.context.main')->getArgument(0);
+        $firewallListeners = array_map('strval', $listenersIteratorArgument->getValues());
+
+        $this->assertNotContains('security.authenticator.oidc_login.token_refresh_listener.main', $firewallListeners);
+    }
+
     public function testDisableLogoutTarget()
     {
         $container = $this->getRawContainer();
