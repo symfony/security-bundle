@@ -128,7 +128,7 @@ class AccessTokenFactoryTest extends TestCase
         $this->processConfig($config, $factory);
     }
 
-    public function testInvalidOidcTokenHandlerConfigurationMissingAlgorithmParameters()
+    public function testOidcTokenHandlerConfigurationDefaultsToRs256()
     {
         $config = [
             'token_handler' => [
@@ -141,11 +141,9 @@ class AccessTokenFactoryTest extends TestCase
         ];
 
         $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $finalizedConfig = $this->processConfig($config, $factory);
 
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessage('The child config "algorithms" under "access_token.token_handler.oidc" must be configured: The signature algorithms the token is accepted to be signed with');
-
-        $this->processConfig($config, $factory);
+        $this->assertSame(['RS256'], $finalizedConfig['token_handler']['oidc']['algorithms']);
     }
 
     public function testOidcTokenHandlerConfigurationWithMultipleAlgorithms()
@@ -717,6 +715,28 @@ class AccessTokenFactoryTest extends TestCase
         $factory->createAuthenticator($container, 'firewall1', $finalizedConfig, 'userprovider');
 
         $this->assertSame([], $container->getDefinition('security.access_token_handler.firewall1')->getMethodCalls());
+    }
+
+    public function testOAuth2TokenHandlerConfigurationSignedResponseDefaultsToRs256()
+    {
+        $config = [
+            'token_handler' => [
+                'oauth2' => [
+                    'http_client' => 'oauth2.client',
+                    'issuer' => 'https://authorization-server.example.com/',
+                    'audience' => 'https://api.example.com',
+                    'response_signature' => [
+                        'enabled' => true,
+                        'keyset' => '{"keys":[]}',
+                    ],
+                ],
+            ],
+        ];
+
+        $factory = new AccessTokenFactory($this->createTokenHandlerFactories());
+        $finalizedConfig = $this->processConfig($config, $factory);
+
+        $this->assertSame(['RS256'], $finalizedConfig['token_handler']['oauth2']['response_signature']['algorithms']);
     }
 
     public function testOAuth2TokenHandlerConfigurationWithASignedResponseAndNoIssuer()
