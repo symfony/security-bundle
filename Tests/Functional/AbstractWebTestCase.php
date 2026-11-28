@@ -38,7 +38,7 @@ abstract class AbstractWebTestCase extends BaseWebTestCase
     {
         $fs = new Filesystem();
 
-        if (file_exists($dir = sys_get_temp_dir().'/'.static::getVarDir())) {
+        if (file_exists($dir = sys_get_temp_dir().'/sf_security-bundle_'.hash('xxh32', __FILE__).'/'.static::getVarDir())) {
             $fs->remove($dir);
         }
 
@@ -61,7 +61,7 @@ abstract class AbstractWebTestCase extends BaseWebTestCase
         }
 
         return new $class(
-            static::getVarDir(),
+            sys_get_temp_dir().'/sf_security-bundle_'.hash('xxh32', __FILE__).'/'.static::getVarDir(),
             $options['test_case'],
             $options['root_config'] ?? 'config.yml',
             $options['environment'] ?? strtolower(static::getVarDir().$options['test_case']),
